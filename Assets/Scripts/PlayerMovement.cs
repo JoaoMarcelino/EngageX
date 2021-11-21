@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 
+using System;
+
 public class PlayerMovement : MonoBehaviour
 {
     //Stores input from the PlayerInput
@@ -70,8 +72,8 @@ public class PlayerMovement : MonoBehaviour
 
             transform.position += direction;
         }
-        
-        Debug.Log(transform.position.x);
+        String strings = String.Format("Log: {0}  {1}", System.DateTime.Now, transform.position.y);
+        Debug.Log(strings);
         
         checkBorders();
         //UpdateFogOfWar();
@@ -79,19 +81,22 @@ public class PlayerMovement : MonoBehaviour
 
     private void checkBorders(){
 
-        int maxValue = 3 * 10;
+        float maxValue = 30 ;
+        int offset = 3;
+        float posY = transform.position.y;
+        float posX= transform.position.x;
 
-        if (transform.position.x < -maxValue){
-            transform.position += new Vector3(maxValue*2, 0);
+        if (posX < -maxValue){
+            transform.position += new Vector3(maxValue * 2, 0);
         }
-        else if (transform.position.x > maxValue ){
-            transform.position += new Vector3(-maxValue*2, 0);
+        else if (posX >= maxValue ){
+            transform.position += new Vector3(-maxValue * 2 , 0);
         }
-        else if (transform.position.y < -maxValue ){
-            transform.position += new Vector3(0, maxValue*2);
+        else if (posY < -maxValue ){
+            transform.position += new Vector3(0, maxValue * 2);
         }
-        else if (transform.position.y > maxValue ){
-            transform.position += new Vector3(0, -maxValue*2);
+        else if (posY >= maxValue ){
+            transform.position += new Vector3(0, -maxValue * 2);
         }
     }
 
