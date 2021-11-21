@@ -2,14 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SowAction : MonoBehaviour
+public class HeartManager : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
 
+    public int Health;
+    
     // Update is called once per frame
     void Update()
     {
