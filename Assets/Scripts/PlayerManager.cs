@@ -18,6 +18,10 @@ public class PlayerManager : MonoBehaviour
     public Sprite SowSprite;
 
 
+    //Cursed
+    private float tilemapOffsetX = 0.25f;
+    private float tilemapOffsetY = 2.75f;
+
     private int scaleMap = 3;
 
     private float halfMovement;
@@ -84,8 +88,9 @@ public class PlayerManager : MonoBehaviour
 
             transform.position += direction;
         }
-        String strings = String.Format("Log: {0}  {1}", System.DateTime.Now, transform.position.y);
-        Debug.Log(strings);
+        
+        //String strings = String.Format("Log: {0}  {1}", System.DateTime.Now, transform.position.y);
+        //Debug.Log(strings);
         
         checkBorders();
         //UpdateFogOfWar();
@@ -126,8 +131,8 @@ public class PlayerManager : MonoBehaviour
 
     public void OnClickSow(){
 
-        float posX= transform.position.x;
-        float posY = transform.position.y;
+        float posX= transform.position.x - tilemapOffsetX;
+        float posY = transform.position.y - tilemapOffsetY;
 
         //ArrayList Hearts = new ArrayList();
 
