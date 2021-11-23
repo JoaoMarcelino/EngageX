@@ -8,15 +8,17 @@ using UnityEngine.Tilemaps;
 public class PlayerManager : MonoBehaviour
 {
     //Stores input from the PlayerInput
-    private Vector2 movementInput;
-
-    private Vector3 direction;
+    public FixedJoystick moveJoystick;
 
     public int Health;
     public int Exp;
 
     public Sprite SowSprite;
 
+
+    private Vector2 movementInput;
+
+    private Vector3 direction;
 
     //Cursed
     private float tilemapOffsetX = 0.25f;
@@ -26,6 +28,8 @@ public class PlayerManager : MonoBehaviour
 
     private float halfMovement;
     private float fullMovement;
+
+    private float moveX, moveY, minVal;
 
 
     private bool hasMoved;
@@ -38,12 +42,26 @@ public class PlayerManager : MonoBehaviour
 
     void Update()
     {
-        if(movementInput.x == 0)
+
+        moveX = moveJoystick.Horizontal;
+        moveY = moveJoystick.Vertical;
+        minVal = 0.4f;
+
+        //Cursed if else if pq nao dava doutra maneira nao sei pq
+        if(moveX == 0 )
         {
             hasMoved = false;
         }
-        else if (movementInput.x != 0 && !hasMoved)
+        else if(moveX >minVal && !hasMoved)
         {
+
+            hasMoved = true;
+
+            GetMovementDirection();
+        }
+        else if(moveX < -minVal && !hasMoved)
+        {
+
             hasMoved = true;
 
             GetMovementDirection();
@@ -53,13 +71,14 @@ public class PlayerManager : MonoBehaviour
 
     public void GetMovementDirection()
     {
-        if (movementInput.x < 0)
+        float minVal = 0.4f;
+        if (moveX < -minVal)
         {
-            if (movementInput.y > 0)
+            if (moveY > minVal)
             {
                 direction = new Vector3(-halfMovement, halfMovement);
             }
-            else if (movementInput.y < 0)
+            else if (moveY < -minVal)
             {
                 direction = new Vector3(-halfMovement, -halfMovement);
             }
@@ -70,13 +89,13 @@ public class PlayerManager : MonoBehaviour
             transform.position += direction;
             //UpdateFogOfWar();
         }
-        else if (movementInput.x > 0)
+        else if (moveX> minVal)
         {
-            if (movementInput.y > 0)
+            if (moveY > minVal)
             {
                 direction = new Vector3(halfMovement, halfMovement);
             }
-            else if (movementInput.y < 0)
+            else if (moveY < -minVal)
             {
                 direction = new Vector3(halfMovement, -halfMovement);
             }
