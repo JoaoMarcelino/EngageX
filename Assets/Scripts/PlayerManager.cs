@@ -9,12 +9,12 @@ public class PlayerManager : MonoBehaviour
 {
     //Stores input from the PlayerInput
     public FixedJoystick moveJoystick;
-
+    public GameObject FoW;
     public int Health;
     public int Exp;
 
     public Sprite SowSprite;
-
+    
 
     private Vector2 movementInput;
 
@@ -34,15 +34,17 @@ public class PlayerManager : MonoBehaviour
 
     private bool hasMoved;
 
-    void Start(){
+    void Start()
+    {
         this.halfMovement = 0.5f * scaleMap;
         this.fullMovement = 1f * scaleMap;
+        this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
     }
 
 
     void Update()
     {
-
+        //this.FoW.GetComponent<SpriteRenderer>().sprite = new SPRITE
         moveX = moveJoystick.Horizontal;
         moveY = moveJoystick.Vertical;
         minVal = 0.4f;
@@ -125,13 +127,13 @@ public class PlayerManager : MonoBehaviour
         if (posX < -maxValue){
             transform.position += new Vector3(maxValue * 2, 0);
         }
-        else if (posX >= maxValue ){
+        else if (posX > maxValue){
             transform.position += new Vector3(-maxValue * 2 , 0);
         }
         else if (posY < -maxValue ){
             transform.position += new Vector3(0, maxValue * 2);
         }
-        else if (posY >= maxValue ){
+        else if (posY > maxValue){
             transform.position += new Vector3(0, -maxValue * 2);
         }
     }
