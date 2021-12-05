@@ -34,11 +34,18 @@ public class PlayerManager : MonoBehaviour
 
     private bool hasMoved;
 
+    private long flagTimeStamp =  GetTimestamp(DateTime.Now);
+
     void Start()
     {
         this.halfMovement = 0.5f * scaleMap;
         this.fullMovement = 1f * scaleMap;
         this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
+    }
+
+    public static long GetTimestamp(DateTime value)
+    {
+        return Int64.Parse(value.ToString("yyyyMMddHHmmssffff"));
     }
 
 
@@ -49,6 +56,7 @@ public class PlayerManager : MonoBehaviour
         moveY = moveJoystick.Vertical;
         minVal = 0.4f;
 
+
         //Cursed if else if pq nao dava doutra maneira nao sei pq
         if(moveX == 0 )
         {
@@ -58,6 +66,7 @@ public class PlayerManager : MonoBehaviour
         {
 
             hasMoved = true;
+            flagTimeStamp = GetTimestamp(DateTime.Now);
 
             GetMovementDirection();
         }
@@ -65,8 +74,13 @@ public class PlayerManager : MonoBehaviour
         {
 
             hasMoved = true;
+            flagTimeStamp = GetTimestamp(DateTime.Now);
 
             GetMovementDirection();
+        }
+
+        if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 5000){
+            hasMoved = false;
         }
 
     }
@@ -86,7 +100,7 @@ public class PlayerManager : MonoBehaviour
             }
             else
             {
-                direction = new Vector3(-fullMovement, 0, 0);
+                direction = new Vector3(-fullMovement, 0);
             }
             transform.position += direction;
             //UpdateFogOfWar();
@@ -103,39 +117,52 @@ public class PlayerManager : MonoBehaviour
             }
             else
             {
-                direction = new Vector3(fullMovement, 0, 0);
+                direction = new Vector3(fullMovement, 0);
             }
 
 
             transform.position += direction;
         }
         
-        //String strings = String.Format("Log: {0}  {1}", System.DateTime.Now, transform.position.y);
+        //String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, -10 * scaleMap - direction.x, 10 * scaleMap + direction.x);
         //Debug.Log(strings);
         
-        checkBorders();
+        checkBorders(direction);
         //UpdateFogOfWar();
     }
 
-    private void checkBorders(){
+    private void checkBorders(Vector3 direction){
 
         float maxValue = 10 * scaleMap;
         int offset = scaleMap;
         float posY = transform.position.y;
         float posX= transform.position.x;
 
-        if (posX < -maxValue){
-            transform.position += new Vector3(maxValue * 2, 0);
+
+        //X LIMITS FOR NORMAL VALUES
+        if (posX < -maxValue && posX == -maxValue - fullMovement){
+            transform.position = new Vector3(maxValue, posY);
         }
-        else if (posX > maxValue){
-            transform.position += new Vector3(-maxValue * 2 , 0);
+        else if (posX > maxValue && posX == maxValue + fullMovement){
+            transform.position = new Vector3(-maxValue , posY);
         }
-        else if (posY < -maxValue ){
-            transform.position += new Vector3(0, maxValue * 2);
+        
+        //X LIMITS FOR .5 VALUES
+        else if(posX < -maxValue - fullMovement){
+            transform.position = new Vector3(maxValue - halfMovement, posY);
+        }
+        else if(posX > maxValue ){
+            transform.position = new Vector3(-maxValue - halfMovement, posY);
+        }
+        //Y LIMITS FOR .5 VALUES
+        else if (posY < -maxValue - halfMovement){
+            transform.position = new Vector3(posX, maxValue);
         }
         else if (posY > maxValue){
-            transform.position += new Vector3(0, -maxValue * 2);
+            transform.position = new Vector3(posX, - maxValue - halfMovement);
         }
+        String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, transform.position, transform.position);
+        Debug.Log(strings);
     }
 
     public void OnMove(InputValue value)
