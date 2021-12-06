@@ -6,6 +6,7 @@ TagManager:
   tags:
   - HealthItem
   - FogOfWar
+  - EventSystem
   layers:
   - Default
   - TransparentFX

@@ -1,15 +1,72 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Tilemaps;
 
 public class GameManagement : MonoBehaviour
 {
     
     public int Ticks;
 
-    // Update is called once per frame
+    public Sprite SowSprite;
+
+    private long flagTimeStamp =  GetTimestamp(DateTime.Now);
+
+    //Cursed
+    private float tilemapOffsetX = 0.25f;
+    private float tilemapOffsetY = 2.75f;
+
+    ArrayList Hearts = new ArrayList();
+
+    public static long GetTimestamp(DateTime value)
+    {
+        return Int64.Parse(value.ToString("yyyyMMddHHmmssffff"));
+    }
+
+    void Start(){
+
+        
+
+    }
+
     void Update()
     {
-        
+        if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 50000){
+            Ticks += 1;
+            flagTimeStamp = GetTimestamp(DateTime.Now);
+
+
+        }
+
     }
+
+    public void createHeart(float posX, float posY){    
+        
+        String name =  "Heart_" + (posX - tilemapOffsetX)  + "_" + (posY - tilemapOffsetY);
+
+        if ( GameObject.Find(name)){
+            return ;
+        }
+
+        GameObject heart = new GameObject();
+
+        heart.tag = "HealthItem";
+        heart.name = name;
+
+
+        heart.transform.position = new Vector3(posX, posY);
+        heart.transform.localScale = new Vector3(5, 5);
+
+        heart.AddComponent<Rigidbody2D>();
+        heart.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+        heart.AddComponent<HeartManager>();
+        heart.AddComponent<SpriteRenderer>();
+        heart.GetComponent<SpriteRenderer>().sprite = SowSprite;
+        heart.GetComponent<SpriteRenderer>().sortingOrder = 3;
+
+        //Hearts.Add(heart);
+    }
+
 }

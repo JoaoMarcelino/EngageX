@@ -13,8 +13,7 @@ public class PlayerManager : MonoBehaviour
     public int Health;
     public int Exp;
 
-    public Sprite SowSprite;
-    
+    private GameObject EventSystem;
 
     private Vector2 movementInput;
 
@@ -184,39 +183,24 @@ public class PlayerManager : MonoBehaviour
 
         //ArrayList Hearts = new ArrayList();
 
-
+        EventSystem = GameObject.FindGameObjectWithTag("EventSystem");
 
         //Loop Around Player
 
-        int index = 0;
+        EventSystem.GetComponent<GameManagement>().createHeart(posX + fullMovement, posY);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX - fullMovement, posY);
 
-        createHeart(posX + fullMovement, posY, index++);
-        createHeart(posX - fullMovement, posY, index++);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX + halfMovement, posY + halfMovement);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX + halfMovement, posY - halfMovement);
 
-        createHeart(posX + halfMovement, posY + halfMovement, index++);
-        createHeart(posX + halfMovement, posY - halfMovement, index++);
-
-        createHeart(posX - halfMovement, posY + halfMovement, index++);
-        createHeart(posX - halfMovement, posY - halfMovement, index++);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX - halfMovement, posY + halfMovement);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX - halfMovement, posY - halfMovement);
     }
 
 
-    private void createHeart(float posX, float posY, int i){
-
-        GameObject heart = new GameObject();
-
-        heart.tag = "HealthItem";
-        heart.name = "Heart" + "1" + i;
-        heart.transform.position = new Vector3(posX, posY);
-        heart.transform.localScale = new Vector3(5, 5);
-
-        heart.AddComponent<Rigidbody2D>();
-        heart.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
-        heart.AddComponent<HeartManager>();
-        heart.AddComponent<SpriteRenderer>();
-        heart.GetComponent<SpriteRenderer>().sprite = SowSprite;
-        heart.GetComponent<SpriteRenderer>().sortingOrder = 3;
-
-        //Hearts.Add(heart);
+    public void OnClickHarvest(){
+        return ;
     }
+
+
 }

@@ -11034,7 +11034,6 @@ MonoBehaviour:
   FoW: {fileID: 0}
   Health: 0
   Exp: 0
-  SowSprite: {fileID: 21300000, guid: 0d3e542041db03f4bb7384d4b09364c3, type: 3}
 --- !u!114 &1783399299
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11282,11 +11281,11 @@ GameObject:
   m_Component:
   - component: {fileID: 2083035288}
   - component: {fileID: 2083035287}
-  - component: {fileID: 2083035286}
   - component: {fileID: 2083035289}
+  - component: {fileID: 2083035286}
   m_Layer: 0
   m_Name: EventSystem
-  m_TagString: Untagged
+  m_TagString: EventSystem
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -11371,6 +11370,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Ticks: 0
+  SowSprite: {fileID: 21300000, guid: 15cc575b0d9a36846838578bfb080819, type: 3}
 --- !u!1 &2133954556
 GameObject:
   m_ObjectHideFlags: 0
