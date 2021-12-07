@@ -40,6 +40,7 @@ public class PlayerManager : MonoBehaviour
         this.halfMovement = 0.5f * scaleMap;
         this.fullMovement = 1f * scaleMap;
         this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
+        this.EventSystem = GameObject.FindGameObjectWithTag("EventSystem");
     }
 
     public static long GetTimestamp(DateTime value)
@@ -175,31 +176,46 @@ public class PlayerManager : MonoBehaviour
         transform.position -= direction;
     }
 
+    public void addHealth(int value){
+        Health = value;
+    }
+
 
     public void OnClickSow(){
 
         float posX= transform.position.x - tilemapOffsetX;
         float posY = transform.position.y - tilemapOffsetY;
 
-        //ArrayList Hearts = new ArrayList();
 
-        EventSystem = GameObject.FindGameObjectWithTag("EventSystem");
+        //TODO LOSE HEALTH, CHOOSE PERCENTAGE OF HEALTH GIVEN
+        int healthGiven = 10;
+
 
         //Loop Around Player
+        EventSystem.GetComponent<GameManagement>().createHeart(posX + fullMovement, posY, healthGiven);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX - fullMovement, posY, healthGiven);
 
-        EventSystem.GetComponent<GameManagement>().createHeart(posX + fullMovement, posY);
-        EventSystem.GetComponent<GameManagement>().createHeart(posX - fullMovement, posY);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX + halfMovement, posY + halfMovement, healthGiven);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX + halfMovement, posY - halfMovement, healthGiven);
 
-        EventSystem.GetComponent<GameManagement>().createHeart(posX + halfMovement, posY + halfMovement);
-        EventSystem.GetComponent<GameManagement>().createHeart(posX + halfMovement, posY - halfMovement);
-
-        EventSystem.GetComponent<GameManagement>().createHeart(posX - halfMovement, posY + halfMovement);
-        EventSystem.GetComponent<GameManagement>().createHeart(posX - halfMovement, posY - halfMovement);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX - halfMovement, posY + halfMovement, healthGiven);
+        EventSystem.GetComponent<GameManagement>().createHeart(posX - halfMovement, posY - halfMovement, healthGiven);
     }
 
 
     public void OnClickHarvest(){
-        return ;
+
+        
+        float posX= transform.position.x - tilemapOffsetX;
+        float posY = transform.position.y - tilemapOffsetY;
+
+
+        int healthChange = EventSystem.GetComponent<GameManagement>().removeHeart(posX, posY);
+
+        if (healthChange != -1){
+            Health += healthChange;
+            Debug.Log(Health);
+        }
     }
 
 
