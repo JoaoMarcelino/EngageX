@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
+using UnityEngine.UI;
 
 public class PlayerManager : MonoBehaviour
 {
@@ -12,6 +13,8 @@ public class PlayerManager : MonoBehaviour
     public GameObject FoW;
     public int Health;
     public int Exp;
+    public Text HealthText;
+    public Text ExpText;
 
     private GameObject EventSystem;
 
@@ -51,6 +54,7 @@ public class PlayerManager : MonoBehaviour
 
     void Update()
     {
+
         //this.FoW.GetComponent<SpriteRenderer>().sprite = new SPRITE
         moveX = moveJoystick.Horizontal;
         moveY = moveJoystick.Vertical;
@@ -82,6 +86,11 @@ public class PlayerManager : MonoBehaviour
         if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 5000){
             hasMoved = false;
         }
+
+
+        //Update Text:
+        HealthText.text = "Health: " + Health;
+        ExpText.text = "XP: " + Exp;
 
     }
 
@@ -176,9 +185,12 @@ public class PlayerManager : MonoBehaviour
         transform.position -= direction;
     }
 
+
     public void addHealth(int value){
         Health = value;
     }
+
+
 
 
     public void OnClickSow(){

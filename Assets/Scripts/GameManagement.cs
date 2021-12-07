@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
+using UnityEngine.UI;
 
 public class GameManagement : MonoBehaviour
 {
     
     public int Ticks;
+    public Text TickText;
 
     public Sprite SowSprite;
 
@@ -33,12 +35,16 @@ public class GameManagement : MonoBehaviour
 
     void Update()
     {
-        if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 50000){
+        
+
+        if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 10000){
             Ticks += 1;
             flagTimeStamp = GetTimestamp(DateTime.Now);
 
 
         }
+
+        TickText.text = Ticks.ToString();
     }
 
     public void createHeart(float posX, float posY, int health){    
