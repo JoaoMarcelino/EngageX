@@ -41,7 +41,6 @@ public class GameManagement : MonoBehaviour
             Ticks += 1;
             flagTimeStamp = GetTimestamp(DateTime.Now);
 
-
         }
 
         TickText.text = Ticks.ToString();
