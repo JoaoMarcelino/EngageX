@@ -90,22 +90,38 @@ public class PlayerManager : MonoBehaviour
         float minVal = 0.4f;
         if (moveX < -minVal){
             if (moveY > minVal){            // diagonal esquerda cima
-                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement,2)*2)) direction = new Vector3(-halfMovement, halfMovement);
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement, 2) * 2)) {
+                    direction = new Vector3(-halfMovement, halfMovement);
+                    destination.position += direction;
+                }
             }else if (moveY < -minVal){     // diagonal esquerda baixo 
-                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement,2)*2)) direction = new Vector3(-halfMovement, -halfMovement);
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement, 2) * 2)) {
+                    direction = new Vector3(-halfMovement, -halfMovement);
+                    destination.position += direction;
+                }
             }else{                          // esquerda
-                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= fullMovement)                          direction = new Vector3(-fullMovement, 0);
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= fullMovement) {
+                    direction = new Vector3(-fullMovement, 0);
+                    destination.position += direction;
+                }
             }
-            destination.position += direction;
         }else if (moveX> minVal){
             if (moveY > minVal){            // diagonal direita cima
-                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement,2)*2)) direction = new Vector3(halfMovement, halfMovement);
-            }else if (moveY < -minVal){     // diagonal direita baixo
-                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement,2)*2)) direction = new Vector3(halfMovement, -halfMovement);
-            }else{                          // direita
-                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= fullMovement)                          direction = new Vector3(fullMovement, 0);
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement, 2) * 2)) {
+                    direction = new Vector3(halfMovement, halfMovement);
+                    destination.position += direction;
+                }
+            } else if (moveY < -minVal){     // diagonal direita baixo
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement, 2) * 2)) {
+                    direction = new Vector3(halfMovement, -halfMovement);
+                    destination.position += direction;
+                }
+            } else{                          // direita
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= fullMovement) {
+                    direction = new Vector3(fullMovement, 0);
+                    destination.position += direction;
+                }
             }
-            destination.position += direction;
         }
         //String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, -10 * scaleMap - direction.x, 10 * scaleMap + direction.x);
         //Debug.Log(strings);
