@@ -40,10 +40,14 @@ public class PlayerManager : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("Start Here!");
         this.halfMovement = 0.5f * scaleMap;
         this.fullMovement = 1f * scaleMap;
         this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
         this.EventSystem = GameObject.FindGameObjectWithTag("EventSystem");
+
+        GameObject moveJoystickObject = GameObject.FindGameObjectWithTag("Joystick"); 
+        this.moveJoystick = moveJoystickObject.GetComponent<FixedJoystick>();
     }
 
     public static long GetTimestamp(DateTime value)
@@ -53,7 +57,8 @@ public class PlayerManager : MonoBehaviour
 
 
     void Update()
-    {
+    {   
+        Debug.Log(transform.position);
 
         //this.FoW.GetComponent<SpriteRenderer>().sprite = new SPRITE
         moveX = moveJoystick.Horizontal;
@@ -216,7 +221,6 @@ public class PlayerManager : MonoBehaviour
 
 
     public void OnClickHarvest(){
-
         
         float posX= transform.position.x - tilemapOffsetX;
         float posY = transform.position.y - tilemapOffsetY;
