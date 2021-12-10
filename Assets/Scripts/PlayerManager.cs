@@ -160,12 +160,12 @@ public class PlayerManager : MonoBehaviour
 
         //X LIMITS FOR NORMAL VALUES
         if (posX < -maxValue && posX == -maxValue - fullMovement){
-            transform.position = new Vector3(maxValue, posY);
-            destination.position  = new Vector3(maxValue, posY);
+            transform.position = new Vector3(-1.5f+maxValue, posY);
+            destination.position  = new Vector3(-1.5f+maxValue, posY);
         }
         else if (posX > maxValue && posX == maxValue + fullMovement){
-            transform.position = new Vector3(-maxValue , posY);
-            destination.position = new Vector3(-maxValue , posY);
+            transform.position = new Vector3(1.5f-maxValue , posY);
+            destination.position = new Vector3(1.5f-maxValue, posY);
         }
         
         //X LIMITS FOR .5 VALUES
