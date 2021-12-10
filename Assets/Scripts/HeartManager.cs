@@ -7,10 +7,14 @@ using UnityEngine.InputSystem;
 public class HeartManager : MonoBehaviour
 {
 
-    private int Health = 0;
+    public int health = 0;
     private long tickTime; 
     private int Tick = 0;
     private bool hasUpdated;
+
+    public double healthLimit = 10.0;
+    public int scaleSize = 1;
+    public int initialSize;
 
     public static long GetTimestamp(DateTime value)
     {
@@ -19,6 +23,8 @@ public class HeartManager : MonoBehaviour
     
     void Start(){
         tickTime = GetTimestamp(DateTime.Now);
+
+        changeScale();
     }
 
     // Update is called once per frame
@@ -33,21 +39,30 @@ public class HeartManager : MonoBehaviour
         }
 
         if(Tick % 10 == 0 & this.transform.localScale.x < 14 & !hasUpdated){
-            Vector3 scale = new Vector3(3, 3);
-            this.transform.localScale += scale ; 
-                Health += (int) Math.Round(Health * 0.10);
+            
+            health += (int) Math.Ceiling(health * 0.25);
             
             hasUpdated = true;
+            
+            changeScale();
         }
+
         
     }
 
+    public void changeScale(){
+        int size = (int) Math.Floor(health / healthLimit);
+
+        Vector3 scale = new Vector3(initialSize +  scaleSize * size, initialSize +  scaleSize * size);
+        this.transform.localScale = scale; 
+    }
+
     public void addHealth(int value){
-        Health += value;
+        health += value;
     }
 
     public int getHealth(){
-        return Health;
+        return health;
     }
     
 }

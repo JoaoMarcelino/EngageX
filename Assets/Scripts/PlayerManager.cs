@@ -1,4 +1,5 @@
 ﻿using System;
+using static System.Math;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,15 +7,22 @@ using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
+
 public class PlayerManager : MonoBehaviour
 {
     //Stores input from the PlayerInput
     public FixedJoystick moveJoystick;
     public GameObject FoW;
-    public int Health;
+    public int health;
     public int Exp;
     public Text HealthText;
     public Text ExpText;
+    public double percentageSow = 0.33;
+    public double percentageUp = 0.5;
+    
+    //Player movement variables
+    public float movementSpeed = 5f;
+    public Transform destination;
 
     private GameObject EventSystem;
 
@@ -40,7 +48,8 @@ public class PlayerManager : MonoBehaviour
 
     void Start()
     {
-        this.halfMovement = 0.5f * scaleMap;
+        destination.parent = null;
+        this.halfMovement = 0.5f * scaleMap ;
         this.fullMovement = 1f * scaleMap;
         this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
         this.EventSystem = GameObject.FindGameObjectWithTag("EventSystem");
@@ -60,83 +69,84 @@ public class PlayerManager : MonoBehaviour
         moveY = moveJoystick.Vertical;
         minVal = 0.4f;
 
-
+        transform.position = Vector3.MoveTowards(transform.position, destination.position, movementSpeed*Time.deltaTime) ;
+        
+        checkBorders(direction);
         //Cursed if else if pq nao dava doutra maneira nao sei pq
-        if(moveX == 0 )
-        {
+        if(moveX == 0 && !hasMoved){
             hasMoved = false;
-        }
-        else if(moveX >minVal && !hasMoved)
-        {
+        }else if(moveX > minVal && !hasMoved){
+
+            hasMoved = true;
+            flagTimeStamp = GetTimestamp(DateTime.Now);
+
+            GetMovementDirection();
+        }else if(moveX < -minVal && !hasMoved){
 
             hasMoved = true;
             flagTimeStamp = GetTimestamp(DateTime.Now);
 
             GetMovementDirection();
         }
-        else if(moveX < -minVal && !hasMoved)
-        {
 
-            hasMoved = true;
-            flagTimeStamp = GetTimestamp(DateTime.Now);
-
-            GetMovementDirection();
-        }
-
-        if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 5000){
+        if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 1000){
             hasMoved = false;
         }
 
 
         //Update Text:
-        HealthText.text = "Health: " + Health;
+        HealthText.text = "health: " + health;
         ExpText.text = "XP: " + Exp;
 
     }
 
-    public void GetMovementDirection()
-    {
+    public void GetMovementDirection(){
         float minVal = 0.4f;
-        if (moveX < -minVal)
-        {
-            if (moveY > minVal)
-            {
-                direction = new Vector3(-halfMovement, halfMovement);
+        
+        if (moveX < -minVal){
+            if (moveY > minVal){         // diagonal esquerda cima
+                Debug.Log(Mathf.Ceil(Vector3.Distance(transform.position, destination.position))+"   "+Math.Sqrt(Math.Pow(halfMovement,2)*2));
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement,2)*2)){
+                    direction = new Vector3(-halfMovement, halfMovement);
+                    destination.position += direction;
+                }
+            }else if (moveY < -minVal){   // diagonal esquerda baixo 
+                Debug.Log(Mathf.Ceil(Vector3.Distance(transform.position, destination.position))+"   "+Math.Sqrt(Math.Pow(halfMovement,2)*2));
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement,2)*2)){
+                    direction = new Vector3(-halfMovement, -halfMovement);
+                    destination.position += direction;
+                }
+            }else{                        // esquerda
+                Debug.Log(Mathf.Ceil(Vector3.Distance(transform.position, destination.position))+"  |  "+ fullMovement);
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= fullMovement){
+                    direction = new Vector3(-fullMovement, 0);
+                    destination.position += direction;
+                }
             }
-            else if (moveY < -minVal)
-            {
-                direction = new Vector3(-halfMovement, -halfMovement);
+        }else if (moveX> minVal){
+            if (moveY > minVal){         // diagonal direita cima
+                Debug.Log(Mathf.Ceil(Vector3.Distance(transform.position, destination.position))+"   "+Math.Sqrt(Math.Pow(halfMovement,2)*2));
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement,2)*2)){
+                    direction = new Vector3(halfMovement, halfMovement);
+                    destination.position += direction;
+                }
+            }else if (moveY < -minVal){   // diagonal direita baixo
+                Debug.Log(Mathf.Ceil(Vector3.Distance(transform.position, destination.position))+"   "+Math.Sqrt(Math.Pow(halfMovement,2)*2));
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(halfMovement,2)*2)){
+                    direction = new Vector3(halfMovement, -halfMovement);
+                    destination.position += direction;
+                }
+            }else{                        // direita
+                if(Mathf.Ceil(Vector3.Distance(transform.position, destination.position)) <= Math.Sqrt(Math.Pow(fullMovement,2))){
+                    direction = new Vector3(fullMovement, 0);
+                    destination.position += direction;
+                }
             }
-            else
-            {
-                direction = new Vector3(-fullMovement, 0);
-            }
-            transform.position += direction;
-            //UpdateFogOfWar();
-        }
-        else if (moveX> minVal)
-        {
-            if (moveY > minVal)
-            {
-                direction = new Vector3(halfMovement, halfMovement);
-            }
-            else if (moveY < -minVal)
-            {
-                direction = new Vector3(halfMovement, -halfMovement);
-            }
-            else
-            {
-                direction = new Vector3(fullMovement, 0);
-            }
-
-
-            transform.position += direction;
         }
         
         //String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, -10 * scaleMap - direction.x, 10 * scaleMap + direction.x);
         //Debug.Log(strings);
         
-        checkBorders(direction);
         //UpdateFogOfWar();
     }
 
@@ -151,24 +161,30 @@ public class PlayerManager : MonoBehaviour
         //X LIMITS FOR NORMAL VALUES
         if (posX < -maxValue && posX == -maxValue - fullMovement){
             transform.position = new Vector3(maxValue, posY);
+            destination.position  = new Vector3(maxValue, posY);
         }
         else if (posX > maxValue && posX == maxValue + fullMovement){
             transform.position = new Vector3(-maxValue , posY);
+            destination.position = new Vector3(-maxValue , posY);
         }
         
         //X LIMITS FOR .5 VALUES
         else if(posX < -maxValue - fullMovement){
             transform.position = new Vector3(maxValue - halfMovement, posY);
+            destination.position = new Vector3(maxValue - halfMovement, posY);
         }
         else if(posX > maxValue ){
             transform.position = new Vector3(-maxValue - halfMovement, posY);
+            destination.position = new Vector3(-maxValue - halfMovement, posY);
         }
         //Y LIMITS FOR .5 VALUES
         else if (posY < -maxValue - halfMovement){
             transform.position = new Vector3(posX, maxValue);
+            destination.position = new Vector3(posX, maxValue);
         }
         else if (posY > maxValue){
             transform.position = new Vector3(posX, - maxValue - halfMovement);
+            destination.position = new Vector3(posX, - maxValue - halfMovement);
         }
         String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, transform.position, transform.position);
         Debug.Log(strings);
@@ -187,7 +203,7 @@ public class PlayerManager : MonoBehaviour
 
 
     public void addHealth(int value){
-        Health = value;
+        health = value;
     }
 
 
@@ -197,10 +213,17 @@ public class PlayerManager : MonoBehaviour
 
         float posX= transform.position.x - tilemapOffsetX;
         float posY = transform.position.y - tilemapOffsetY;
+        int healthGiven;
 
+        int aux = 10; 
 
         //TODO LOSE HEALTH, CHOOSE PERCENTAGE OF HEALTH GIVEN
-        int healthGiven = 10;
+        if (health <= aux){
+            healthGiven = (int) Math.Ceiling(aux * percentageSow);
+        }else{
+            healthGiven = (int) Math.Ceiling(health * percentageSow);
+            health -= healthGiven;
+        }
 
 
         //Loop Around Player
@@ -225,10 +248,17 @@ public class PlayerManager : MonoBehaviour
         int healthChange = EventSystem.GetComponent<GameManagement>().removeHeart(posX, posY);
 
         if (healthChange != -1){
-            Health += healthChange;
-            Debug.Log(Health);
+            health += healthChange;
+            Debug.Log(health);
         }
     }
 
+
+    public void onClickLevelUp(){
+
+        int healthToLevel = (int) Math.Ceiling(health * percentageUp);
+        health -= healthToLevel;
+        Exp += healthToLevel;
+    }
 
 }

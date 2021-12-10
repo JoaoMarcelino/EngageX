@@ -11,7 +11,7 @@ public class GameManagement : MonoBehaviour
     
     public int Ticks;
     public Text TickText;
-
+    public int sizeHeart = 5;
     public Sprite SowSprite;
 
     private long flagTimeStamp =  GetTimestamp(DateTime.Now);
@@ -63,7 +63,7 @@ public class GameManagement : MonoBehaviour
 
 
         heart.transform.position = new Vector3(posX, posY);
-        heart.transform.localScale = new Vector3(5, 5);
+        heart.transform.localScale = new Vector3(sizeHeart, sizeHeart);
 
         heart.AddComponent<Rigidbody2D>();
         heart.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
@@ -72,6 +72,7 @@ public class GameManagement : MonoBehaviour
         heart.GetComponent<SpriteRenderer>().sortingOrder = 3;
 
         heart.AddComponent<HeartManager>();
+        heart.GetComponent<HeartManager>().initialSize = sizeHeart;
         heart.GetComponent<HeartManager>().addHealth(health);
     }
 
