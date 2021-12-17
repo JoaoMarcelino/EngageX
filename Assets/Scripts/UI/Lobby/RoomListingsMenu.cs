@@ -22,11 +22,12 @@ public class RoomListingsMenu : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         _lobbyCanvases.CurrentRoomCanvas.Show();
+        _content.DestroyChildren();
+        _listings.Clear();
     }
 
     public override void OnRoomListUpdate(List<RoomInfo> roomList)
     {
-        Debug.Log("OnRoomListUpdate");
         foreach (RoomInfo info in roomList)
         {
             Debug.Log(info.Name);
@@ -39,11 +40,17 @@ public class RoomListingsMenu : MonoBehaviourPunCallbacks
                     _listings.RemoveAt(index);
                 }
             }
-            else{
-                RoomListing listing = (RoomListing) Instantiate(_roomListing, _content);
-                if(listing != null){
-                    listing.SetRoomInfo(info);
-                    _listings.Add(listing);
+            else
+            {
+                int index = _listings.FindIndex( x => x.RoomInfo.Name == info.Name);
+                if(index == -1)
+                {
+                    RoomListing listing = (RoomListing) Instantiate(_roomListing, _content);
+                    if(listing != null)
+                    {
+                        listing.SetRoomInfo(info);
+                        _listings.Add(listing);
+                    }
                 }
             }
         }
