@@ -22,6 +22,9 @@ public class PlayerManager : MonoBehaviour
 
     private Vector3 direction;
 
+    public double percentageSow = 0.33;
+    public double percentageUp = 0.5;
+
     //Cursed
     private float tilemapOffsetX = 0.25f;
     private float tilemapOffsetY = 2.75f;
@@ -195,7 +198,9 @@ public class PlayerManager : MonoBehaviour
         Health = value;
     }
 
-
+    public int getHealth(){
+        return Health;
+    }
 
 
     public void OnClickSow(){
@@ -203,9 +208,17 @@ public class PlayerManager : MonoBehaviour
         float posX= transform.position.x - tilemapOffsetX;
         float posY = transform.position.y - tilemapOffsetY;
 
+        int healthGiven;
+        int aux = 10; 
 
         //TODO LOSE HEALTH, CHOOSE PERCENTAGE OF HEALTH GIVEN
-        int healthGiven = 10;
+        if (Health <= aux){
+            healthGiven = (int) Math.Ceiling(aux * percentageSow);
+        }else{
+            healthGiven = (int) Math.Ceiling(Health * percentageSow);
+            Health -= healthGiven;
+        }
+
 
 
         //Loop Around Player
@@ -234,5 +247,85 @@ public class PlayerManager : MonoBehaviour
         }
     }
 
+
+    public void onClickLevelUp(){
+
+        int healthToLevel = (int) Math.Ceiling(Health * percentageUp);
+        Health -= healthToLevel;
+        Exp += healthToLevel;
+    }
+
+    
+    public void onClickFight(){
+
+        //TODO CALL FUNCTION TO CHECK IF FIRST;
+        bool isFirst = false;
+
+
+        if (isFirst){
+
+            int sum = this.health + opponent.getHealth * 0.5;
+
+            if (winner){
+                this.addHealth(sum * 0.5);
+            }else{
+                opponent.addHealth(sum * 0.5);
+            }
+
+        }
+
+    }
+
+    public void onClickFlee(){
+        
+        //TODO CALL FUNCTION TO CHECK IF FIRST;
+        bool isFirst = false;
+
+        if (isFirst){
+            if(Random.Range(0, 100) < 25){
+                int aux = Health*0.25;
+                
+                this.Health -= aux;
+                if (Random.Range(0, 100) < 20){
+                    opponent.addHealth(aux);
+                }
+            }
+            else{ 
+                pass;
+            }
+        }
+
+    }
+
+    public void onClickShare(){
+
+        //TODO CALL FUNCTION TO CHECK IF FIRST;
+        bool isFirst = false;
+        if (isFirst){
+            int auxHealth = opponent.getHealth() * 0.5;
+
+            opponent.addHealth(health * 0.5);
+
+            this.addHealth(auxHealth);
+        }
+
+    }
+
+    public void onClickSteal(){
+
+        //TODO CALL FUNCTION TO CHECK IF FIRST;
+        bool isFirst = false;
+
+        if (isFirst){
+            if (Random.Range(0, 100) < 25){
+                this.addHealth(opponent.getHealth() * 0.25);
+            }
+            else{ 
+                this.Health = 0;
+            }
+        }
+
+
+    }
 
 }
