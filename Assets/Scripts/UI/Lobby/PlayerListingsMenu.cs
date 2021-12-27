@@ -101,6 +101,7 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
     {
         if(PhotonNetwork.IsMasterClient)
         {
+            /*
             for(int i  = 0; i < _listings.Count; ++i)
             {
                 if(_listings[i].Player != PhotonNetwork.LocalPlayer)
@@ -109,6 +110,7 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
                         return;
                 }
             }
+            */
 
             PhotonNetwork.CurrentRoom.IsOpen = false;
             PhotonNetwork.CurrentRoom.IsVisible = false;

@@ -5,16 +5,23 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
+using Photon.Pun;
 
-public class PlayerManager : MonoBehaviour
+public class PlayerManager : MonoBehaviourPun
 {
     //Stores input from the PlayerInput
-    public FixedJoystick moveJoystick;
-    public GameObject FoW;
-    public int Health;
-    public int Exp;
-    public Text HealthText;
-    public Text ExpText;
+    [SerializeField]
+    private FixedJoystick _moveJoystick;
+    [SerializeField]
+    private GameObject FoW;
+    [SerializeField]
+    private int Health;
+    [SerializeField]
+    private int Exp;
+    [SerializeField]
+    private Text HealthText;
+    [SerializeField]
+    private Text ExpText;
 
     private GameObject EventSystem;
 
@@ -35,7 +42,9 @@ public class PlayerManager : MonoBehaviour
     private float fullMovement;
 
     private float moveX, moveY, minVal;
-
+    
+    public Sprite SowSprite;
+    ArrayList heartsList = new ArrayList();
 
     private bool hasMoved;
 
@@ -43,14 +52,18 @@ public class PlayerManager : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("Start Here!");
+        if(!photonView.IsMine) return;
+
         this.halfMovement = 0.5f * scaleMap;
         this.fullMovement = 1f * scaleMap;
         this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
         this.EventSystem = GameObject.FindGameObjectWithTag("EventSystem");
+        GameObject moveJoystickObject = GameObject.FindGameObjectWithTag("Joystick");
 
-        GameObject moveJoystickObject = GameObject.FindGameObjectWithTag("Joystick"); 
-        this.moveJoystick = moveJoystickObject.GetComponent<FixedJoystick>();
+        if(moveJoystickObject != null)
+        {
+            this._moveJoystick = moveJoystickObject.GetComponent<FixedJoystick>();
+        }
     }
 
     public static long GetTimestamp(DateTime value)
@@ -61,11 +74,11 @@ public class PlayerManager : MonoBehaviour
 
     void Update()
     {   
-        Debug.Log(transform.position);
+        if(!photonView.IsMine) return;
 
         //this.FoW.GetComponent<SpriteRenderer>().sprite = new SPRITE
-        moveX = moveJoystick.Horizontal;
-        moveY = moveJoystick.Vertical;
+        moveX = _moveJoystick.Horizontal;
+        moveY = _moveJoystick.Vertical;
         minVal = 0.4f;
 
 
@@ -212,24 +225,24 @@ public class PlayerManager : MonoBehaviour
         int aux = 10; 
 
         //TODO LOSE HEALTH, CHOOSE PERCENTAGE OF HEALTH GIVEN
-        if (Health <= aux){
+        if (Health <= aux)
+        {
             healthGiven = (int) Math.Ceiling(aux * percentageSow);
-        }else{
+        }
+        else
+        {
             healthGiven = (int) Math.Ceiling(Health * percentageSow);
             Health -= healthGiven;
         }
+        
+        createHeart(posX + fullMovement, posY, healthGiven);
+        createHeart(posX - fullMovement, posY, healthGiven);
 
+        createHeart(posX + halfMovement, posY + halfMovement, healthGiven);
+        createHeart(posX + halfMovement, posY - halfMovement, healthGiven);
 
-
-        //Loop Around Player
-        EventSystem.GetComponent<GameManagement>().createHeart(posX + fullMovement, posY, healthGiven);
-        EventSystem.GetComponent<GameManagement>().createHeart(posX - fullMovement, posY, healthGiven);
-
-        EventSystem.GetComponent<GameManagement>().createHeart(posX + halfMovement, posY + halfMovement, healthGiven);
-        EventSystem.GetComponent<GameManagement>().createHeart(posX + halfMovement, posY - halfMovement, healthGiven);
-
-        EventSystem.GetComponent<GameManagement>().createHeart(posX - halfMovement, posY + halfMovement, healthGiven);
-        EventSystem.GetComponent<GameManagement>().createHeart(posX - halfMovement, posY - halfMovement, healthGiven);
+        createHeart(posX - halfMovement, posY + halfMovement, healthGiven);
+        createHeart(posX - halfMovement, posY - halfMovement, healthGiven);
     }
 
 
@@ -239,7 +252,7 @@ public class PlayerManager : MonoBehaviour
         float posY = transform.position.y - tilemapOffsetY;
 
 
-        int healthChange = EventSystem.GetComponent<GameManagement>().removeHeart(posX, posY);
+        int healthChange = removeHeart(posX, posY);
 
         if (healthChange != -1){
             Health += healthChange;
@@ -255,7 +268,54 @@ public class PlayerManager : MonoBehaviour
         Exp += healthToLevel;
     }
 
+    public void createHeart(float posX, float posY, int health){    
     
+        String name =  "Heart_" + (posX + tilemapOffsetX)  + "_" + (posY + tilemapOffsetY);
+
+        if ( GameObject.Find(name)){
+            return ;
+        }
+
+        GameObject heart = new GameObject();
+
+        heartsList.Add(heart);
+
+        heart.tag = "HealthItem";
+        heart.name = name;
+
+
+        heart.transform.position = new Vector3(posX, posY);
+        heart.transform.localScale = new Vector3(5, 5);
+
+        heart.AddComponent<Rigidbody2D>();
+        heart.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+        heart.AddComponent<SpriteRenderer>();
+        heart.GetComponent<SpriteRenderer>().sprite = SowSprite;
+        heart.GetComponent<SpriteRenderer>().sortingOrder = 3;
+
+        heart.AddComponent<HeartManager>();
+        heart.GetComponent<HeartManager>().addHealth(health);
+    }
+
+    public int removeHeart(float posX, float posY){
+        String name =  "Heart_" + (posX + tilemapOffsetX)  + "_" + (posY + tilemapOffsetY);
+
+        GameObject heart = GameObject.Find(name);
+
+        if (!heart){
+            return -1;
+        }
+        
+        int heartValue = heart.GetComponent<HeartManager>().getHealth();
+
+        heartsList.Remove(heart);
+
+        Destroy(heart);
+
+        return heartValue;
+    }
+
+    /*
     public void onClickFight(){
 
         //TODO CALL FUNCTION TO CHECK IF FIRST;
@@ -326,6 +386,6 @@ public class PlayerManager : MonoBehaviour
         }
 
 
-    }
+    }*/
 
 }
