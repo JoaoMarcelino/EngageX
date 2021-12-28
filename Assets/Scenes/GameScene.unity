@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 310892385}
   - component: {fileID: 310892384}
   - component: {fileID: 310892383}
+  - component: {fileID: 310892386}
   m_Layer: 5
   m_Name: HarvestButton
   m_TagString: Untagged
@@ -251,6 +252,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 310892381}
   m_CullTransparentMesh: 0
+--- !u!114 &310892386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 310892381}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ed0133c5b34b274bbeae6f28e3dbea4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &737416075
 GameObject:
   m_ObjectHideFlags: 0
@@ -263,6 +276,7 @@ GameObject:
   - component: {fileID: 737416079}
   - component: {fileID: 737416078}
   - component: {fileID: 737416077}
+  - component: {fileID: 737416080}
   m_Layer: 5
   m_Name: SowButton
   m_TagString: Untagged
@@ -381,6 +395,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 737416075}
   m_CullTransparentMesh: 0
+--- !u!114 &737416080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 737416075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e255c607dd94f844ac99e250d2fee49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &777014059
 GameObject:
   m_ObjectHideFlags: 0
@@ -671,6 +697,7 @@ GameObject:
   - component: {fileID: 1128447430}
   - component: {fileID: 1128447429}
   - component: {fileID: 1128447428}
+  - component: {fileID: 1128447431}
   m_Layer: 5
   m_Name: UpButton
   m_TagString: Untagged
@@ -789,6 +816,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1128447426}
   m_CullTransparentMesh: 0
+--- !u!114 &1128447431
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1128447426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: babba541e63066542a8a05923024378d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!224 &1231880572 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2929252283123773938, guid: aaa2c939c0359ac4dbce3f49e8b90252,
@@ -10599,6 +10638,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _playerStats: {fileID: 2009819424}
+  _sowButton: {fileID: 737416080}
+  _harvestButton: {fileID: 310892386}
+  _upButton: {fileID: 1128447431}
   _ticksText: {fileID: 777014061}
 --- !u!1 &1648781942
 GameObject:

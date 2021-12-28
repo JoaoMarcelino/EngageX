@@ -21,6 +21,6 @@ public class Pair
     }
     public void Update()
     {
-        _new = _old;
+        _old = _new;
     }
 }

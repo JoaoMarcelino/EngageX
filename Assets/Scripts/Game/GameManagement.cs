@@ -25,8 +25,14 @@ public class GameManagement : MonoBehaviourPun
         GameObject player = MasterManager.NetworkInstantiate(_playerPrefab, spawnPoint, Quaternion.identity);
 
         if(!player.GetPhotonView().IsMine) return;
+        
+        PlayerManager playerManager = player.GetComponent<PlayerManager>();
 
-        player.GetComponent<PlayerManager>().FirstInitialize(_gameCanvas);
+        if(playerManager != null)
+        {
+            playerManager.FirstInitialize(_gameCanvas);
+            _gameCanvas.FirstInitialize(playerManager);
+        }
 
         GameObject camera = GameObject.FindWithTag("MainCamera");
 
@@ -35,7 +41,6 @@ public class GameManagement : MonoBehaviourPun
             CameraMovement cameraScript = camera.GetComponent<CameraMovement>();
             if(cameraScript != null)
             {
-                Debug.Log("Console Here!");
                 cameraScript.SetTarget(player.transform);
             }
         }
