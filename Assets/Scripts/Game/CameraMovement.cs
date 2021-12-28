@@ -4,16 +4,17 @@ using UnityEngine;
 
 public class CameraMovement : MonoBehaviour
 {
-  [SerializeField]
-  private Transform _player;
-  public Vector3 offset;
-  
+  [SerializeField] private Transform _target;
+
   public void SetTarget(Transform target)
   {
-      _player = target;
+      _target = target;
   }
+  
+  [SerializeField] private Vector3 offset;
+
   void LateUpdate () 
   {
-      transform.position = new Vector3 (_player.position.x + offset.x, _player.position.y + offset.y, offset.z); // Camera follows the player with specified offset position
+      transform.position = new Vector3 (_target.position.x + offset.x, _target.position.y + offset.y, -10.0f); // Camera follows the player with specified offset position
   }
 }

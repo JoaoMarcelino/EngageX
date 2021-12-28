@@ -30,7 +30,6 @@ public class RoomListingsMenu : MonoBehaviourPunCallbacks
     {
         foreach (RoomInfo info in roomList)
         {
-            Debug.Log(info.Name);
             if(info.RemovedFromList)
             {
                 int index = _listings.FindIndex( x => x.RoomInfo.Name == info.Name);

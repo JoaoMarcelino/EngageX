@@ -15,7 +15,6 @@ public class PlayerListing : MonoBehaviourPunCallbacks
      
     public void SetPlayerInfo(Player player)
     {
-        Player = player;
         SetPlayerText(player);
     }
 
@@ -33,11 +32,6 @@ public class PlayerListing : MonoBehaviourPunCallbacks
     private void SetPlayerText(Player player) 
     {
         Player = player;
-        int result = -1;
-
-        if(player.CustomProperties.ContainsKey("RandomNumber"))
-            result = (int)player.CustomProperties["RandomNumber"];
-        
-        _text.text = result.ToString() + ", " + player.NickName;
+        _text.text = player.NickName;
     }
 }

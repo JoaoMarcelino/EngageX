@@ -10,19 +10,11 @@ using Photon.Pun;
 public class PlayerManager : MonoBehaviourPun
 {
     //Stores input from the PlayerInput
-    [SerializeField]
-    private FixedJoystick _moveJoystick;
-    [SerializeField]
-    private GameObject FoW;
-    [SerializeField]
-    private int Health;
-    [SerializeField]
-    private int Exp;
-    [SerializeField]
-    private Text HealthText;
-    [SerializeField]
-    private Text ExpText;
-
+    [SerializeField] private FixedJoystick _moveJoystick;
+    [SerializeField] private GameObject FoW;
+    [SerializeField] private Pair _health = new Pair();
+    [SerializeField] private Pair _exp = new Pair();
+    [SerializeField] private GameCanvas _gameCanvas;
     private GameObject EventSystem;
 
     private Vector2 movementInput;
@@ -50,13 +42,11 @@ public class PlayerManager : MonoBehaviourPun
 
     private long flagTimeStamp =  GetTimestamp(DateTime.Now);
 
-    void Start()
-    {
-        if(!photonView.IsMine) return;
-
+    private void Start() {
         this.halfMovement = 0.5f * scaleMap;
         this.fullMovement = 1f * scaleMap;
-        this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
+
+        //this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
         this.EventSystem = GameObject.FindGameObjectWithTag("EventSystem");
         GameObject moveJoystickObject = GameObject.FindGameObjectWithTag("Joystick");
 
@@ -64,6 +54,10 @@ public class PlayerManager : MonoBehaviourPun
         {
             this._moveJoystick = moveJoystickObject.GetComponent<FixedJoystick>();
         }
+    }
+    public void FirstInitialize(GameCanvas gameCanvas)
+    {
+        _gameCanvas = gameCanvas;
     }
 
     public static long GetTimestamp(DateTime value)
@@ -74,7 +68,7 @@ public class PlayerManager : MonoBehaviourPun
 
     void Update()
     {   
-        if(!photonView.IsMine) return;
+        if(!base.photonView.IsMine) return;
 
         //this.FoW.GetComponent<SpriteRenderer>().sprite = new SPRITE
         moveX = _moveJoystick.Horizontal;
@@ -108,11 +102,17 @@ public class PlayerManager : MonoBehaviourPun
             hasMoved = false;
         }
 
-
-        //Update Text:
-        HealthText.text = "Health: " + Health;
-        ExpText.text = "XP: " + Exp;
-
+        if(_health.WasUpdated())
+        {
+            _health.Update();
+            _gameCanvas.PlayerStats.SetHealthText("Health: " + _health.GetNew().ToString());
+        }
+        
+        if(_exp.WasUpdated())
+        {
+            _exp.Update();
+            _gameCanvas.PlayerStats.SetExpText("Exp: " + _exp.GetNew().ToString());
+        }
     }
 
     public void GetMovementDirection()
@@ -200,22 +200,10 @@ public class PlayerManager : MonoBehaviourPun
         movementInput = value.Get<Vector2>();
     }
 
-
     private void OnCollisionEnter2D(Collision2D collision)
     {
         transform.position -= direction;
     }
-
-
-    public void addHealth(int value){
-        Health = value;
-    }
-
-    public int getHealth(){
-        return Health;
-    }
-
-
     public void OnClickSow(){
 
         float posX= transform.position.x - tilemapOffsetX;
@@ -225,14 +213,14 @@ public class PlayerManager : MonoBehaviourPun
         int aux = 10; 
 
         //TODO LOSE HEALTH, CHOOSE PERCENTAGE OF HEALTH GIVEN
-        if (Health <= aux)
+        if (_health.GetNew() <= aux)
         {
             healthGiven = (int) Math.Ceiling(aux * percentageSow);
         }
         else
         {
-            healthGiven = (int) Math.Ceiling(Health * percentageSow);
-            Health -= healthGiven;
+            healthGiven = (int) Math.Ceiling(_health.GetNew() * percentageSow);
+            _health.Add(-healthGiven);
         }
         
         createHeart(posX + fullMovement, posY, healthGiven);
@@ -255,17 +243,16 @@ public class PlayerManager : MonoBehaviourPun
         int healthChange = removeHeart(posX, posY);
 
         if (healthChange != -1){
-            Health += healthChange;
-            Debug.Log(Health);
+            _health.Add(healthChange);
+            Debug.Log(_health.GetNew());
         }
     }
 
 
     public void onClickLevelUp(){
-
-        int healthToLevel = (int) Math.Ceiling(Health * percentageUp);
-        Health -= healthToLevel;
-        Exp += healthToLevel;
+        int healthToLevel = (int) Math.Ceiling(_health.GetNew() * percentageUp);
+        _health.Add(-healthToLevel);
+        _exp.Add(healthToLevel);
     }
 
     public void createHeart(float posX, float posY, int health){    

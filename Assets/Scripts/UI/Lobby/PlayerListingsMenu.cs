@@ -22,7 +22,7 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
     {
         base.OnEnable();
 
-        SetReadyUp(false);
+        //SetReadyUp(false);
         GetCurrentRoomPlayers();
     }
     
@@ -112,8 +112,8 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
             }
             */
 
-            PhotonNetwork.CurrentRoom.IsOpen = false;
-            PhotonNetwork.CurrentRoom.IsVisible = false;
+            //PhotonNetwork.CurrentRoom.IsOpen = false;
+            //PhotonNetwork.CurrentRoom.IsVisible = false;
             PhotonNetwork.LoadLevel(1);
         }
     }

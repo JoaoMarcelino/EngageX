@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Photon.Pun;
 
-public class CurrentRoomCanvas : MonoBehaviour
+public class CurrentRoomCanvas : MonoBehaviourPun
 {
     [SerializeField]
     private PlayerListingsMenu _playerListingMenu;

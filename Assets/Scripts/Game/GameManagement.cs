@@ -9,10 +9,10 @@ using Photon.Pun;
 
 public class GameManagement : MonoBehaviourPun
 {
-    [SerializeField]
-    private int _ticks;
-    [SerializeField]
-    private GameObject _prefab;
+    [SerializeField] private GameCanvas _gameCanvas;
+    [SerializeField] private int _ticks;
+    [SerializeField] private GameObject _playerPrefab;
+    
     public Text TickText;
     private long flagTimeStamp =  GetTimestamp(DateTime.Now);
 
@@ -22,13 +22,23 @@ public class GameManagement : MonoBehaviourPun
     }
     private void Start() {
         Vector3 spawnPoint = new Vector3(0, 0, 0);
-        GameObject player = MasterManager.NetworkInstantiate(_prefab, spawnPoint, Quaternion.identity);
+        GameObject player = MasterManager.NetworkInstantiate(_playerPrefab, spawnPoint, Quaternion.identity);
 
         if(!player.GetPhotonView().IsMine) return;
 
-        player.transform.Find("Camera").gameObject.GetComponent<CameraMovement>().enabled = true;
-        player.transform.Find("Camera").gameObject.GetComponent<CameraMovement>().SetTarget(player.transform);
-        player.transform.Find("Camera").gameObject.SetActive(true);
+        player.GetComponent<PlayerManager>().FirstInitialize(_gameCanvas);
+
+        GameObject camera = GameObject.FindWithTag("MainCamera");
+
+        if(camera != null)
+        {
+            CameraMovement cameraScript = camera.GetComponent<CameraMovement>();
+            if(cameraScript != null)
+            {
+                Debug.Log("Console Here!");
+                cameraScript.SetTarget(player.transform);
+            }
+        }
     }
     void Update()
     {
@@ -37,7 +47,6 @@ public class GameManagement : MonoBehaviourPun
             flagTimeStamp = GetTimestamp(DateTime.Now);
 
         }
-
-        TickText.text = _ticks.ToString();
+        _gameCanvas.SetTicksText(_ticks.ToString());
     }
 }

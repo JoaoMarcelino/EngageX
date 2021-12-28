@@ -50,6 +50,7 @@ public class MasterManager: SingletonScriptableObject<MasterManager>
             if(results[i].GetComponent<PhotonView>() != null)
             {
                 string path = AssetDatabase.GetAssetPath(results[i]);
+                Debug.Log(path);
                 Instance._networkedPrefabs.Add(new NetworkedPrefab(results[i], path));
             }
         }

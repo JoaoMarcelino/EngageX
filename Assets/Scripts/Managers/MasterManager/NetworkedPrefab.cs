@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-public class NetworkedPrefab : MonoBehaviour
+public class NetworkedPrefab
 {
     public GameObject Prefab;
     public string Path;
