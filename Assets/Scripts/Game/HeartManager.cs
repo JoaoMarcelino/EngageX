@@ -6,7 +6,6 @@ using UnityEngine.InputSystem;
 
 public class HeartManager : MonoBehaviour
 {
-
     private int Health = 0;
     private long tickTime; 
     private int Tick = 0;
