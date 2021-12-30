@@ -11,10 +11,10 @@ public class CameraMovement : MonoBehaviour
       _target = target;
   }
   
-  [SerializeField] private Vector3 offset;
+  [SerializeField] private Vector3 _offset;
 
   void LateUpdate () 
   {
-      transform.position = new Vector3 (_target.position.x + offset.x, _target.position.y + offset.y, -10.0f); // Camera follows the player with specified offset position
+      transform.position = new Vector3 (_target.position.x + _offset.x, _target.position.y + _offset.y, -10.0f); // Camera follows the player with specified offset position
   }
 }

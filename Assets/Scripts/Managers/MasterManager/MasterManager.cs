@@ -9,11 +9,9 @@ using Photon.Pun;
 
 public class MasterManager: SingletonScriptableObject<MasterManager>
 {
-    [SerializeField]
-    private GameSettings _gameSettings;
+    [SerializeField] private GameSettings _gameSettings;
     public static GameSettings GameSettings { get { return Instance._gameSettings; } }
-    [SerializeField]
-    private List<NetworkedPrefab> _networkedPrefabs = new List<NetworkedPrefab>();
+    [SerializeField] private List<NetworkedPrefab> _networkedPrefabs = new List<NetworkedPrefab>();
     public static GameObject NetworkInstantiate(GameObject obj, Vector3 position, Quaternion rotation)
     {
         foreach (NetworkedPrefab networkedPrefab in Instance._networkedPrefabs)
@@ -35,8 +33,6 @@ public class MasterManager: SingletonScriptableObject<MasterManager>
         return null;
     }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-
-
     public static void PopulateNetworkedPrefabs()
     {
         #if UNITY_EDITOR

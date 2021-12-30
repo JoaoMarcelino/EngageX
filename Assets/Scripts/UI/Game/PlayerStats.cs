@@ -5,10 +5,8 @@ using UnityEngine.UI;
 
 public class PlayerStats : MonoBehaviour
 {
-    [SerializeField]
-    private Text _healthText;
-    [SerializeField]
-    private Text _expText;
+    [SerializeField] private Text _healthText;
+    [SerializeField] private Text _expText;
     public void SetPlayerStats(int health, int exp)
     {
         _healthText.text = "Health: " + health.ToString();

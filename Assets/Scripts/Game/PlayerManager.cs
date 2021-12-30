@@ -10,15 +10,13 @@ using Photon.Pun;
 public class PlayerManager : MonoBehaviourPun
 {
     //Stores input from the PlayerInput
-    [SerializeField] private FixedJoystick _moveJoystick;
-    [SerializeField] private GameObject FoW;
-    [SerializeField] private Pair _health = new Pair();
-    [SerializeField] private Pair _exp = new Pair();
-    [SerializeField] private GameCanvas _gameCanvas;
-    private GameObject EventSystem;
-
+    [SerializeField] private GameObject _healthPrefab;
+    private FixedJoystick _moveJoystick;
+    private GameObject FoW;
+    private GameCanvas _gameCanvas;
+    private Pair _health = new Pair();
+    private Pair _exp = new Pair();
     private Vector2 movementInput;
-
     private Vector3 direction;
 
     public double percentageSow = 0.33;
@@ -42,17 +40,16 @@ public class PlayerManager : MonoBehaviourPun
 
     private long flagTimeStamp =  GetTimestamp(DateTime.Now);
 
-    private void Start() {
+    private void Start()
+    {
         this.halfMovement = 0.5f * scaleMap;
         this.fullMovement = 1f * scaleMap;
 
-        //this.FoW = GameObject.FindGameObjectWithTag("FogOfWar");
-        this.EventSystem = GameObject.FindGameObjectWithTag("EventSystem");
         GameObject moveJoystickObject = GameObject.FindGameObjectWithTag("Joystick");
 
         if(moveJoystickObject != null)
         {
-            this._moveJoystick = moveJoystickObject.GetComponent<FixedJoystick>();
+            _moveJoystick = moveJoystickObject.GetComponent<FixedJoystick>();
         }
     }
     public void FirstInitialize(GameCanvas gameCanvas)
@@ -235,7 +232,6 @@ public class PlayerManager : MonoBehaviourPun
 
 
     public void OnClickHarvest(){
-        
         float posX= transform.position.x - tilemapOffsetX;
         float posY = transform.position.y - tilemapOffsetY;
 
@@ -255,33 +251,22 @@ public class PlayerManager : MonoBehaviourPun
         _exp.Add(healthToLevel);
     }
 
-    public void createHeart(float posX, float posY, int health){    
-    
+    public void createHeart(float posX, float posY, int health)
+    {  
         String name =  "Heart_" + (posX + tilemapOffsetX)  + "_" + (posY + tilemapOffsetY);
 
         if ( GameObject.Find(name)){
             return ;
         }
 
-        GameObject heart = new GameObject();
+        Vector2 position = new Vector2(posX, posY);
+        GameObject heart = MasterManager.NetworkInstantiate(_healthPrefab, position, Quaternion.identity);
 
-        heartsList.Add(heart);
-
-        heart.tag = "HealthItem";
         heart.name = name;
 
-
-        heart.transform.position = new Vector3(posX, posY);
-        heart.transform.localScale = new Vector3(5, 5);
-
-        heart.AddComponent<Rigidbody2D>();
-        heart.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
-        heart.AddComponent<SpriteRenderer>();
-        heart.GetComponent<SpriteRenderer>().sprite = SowSprite;
-        heart.GetComponent<SpriteRenderer>().sortingOrder = 3;
-
-        heart.AddComponent<HeartManager>();
         heart.GetComponent<HeartManager>().addHealth(health);
+
+        heartsList.Add(heart);
     }
 
     public int removeHeart(float posX, float posY){
@@ -296,8 +281,9 @@ public class PlayerManager : MonoBehaviourPun
         int heartValue = heart.GetComponent<HeartManager>().getHealth();
 
         heartsList.Remove(heart);
+        PhotonNetwork.Destroy(heart);
 
-        Destroy(heart);
+        //Destroy(heart);
 
         return heartValue;
     }

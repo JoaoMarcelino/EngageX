@@ -7,17 +7,12 @@ using Photon.Realtime;
 
 public class PlayerListingsMenu : MonoBehaviourPunCallbacks
 {
-    [SerializeField]
-    private Transform _content;
-    [SerializeField]
-    private PlayerListing _playerListing;
-    [SerializeField]
-    private Text _readyUpText;
-
+    [SerializeField] private Transform _content;
+    [SerializeField] private PlayerListing _playerListing;
+    [SerializeField] private Text _readyUpText;
     private List<PlayerListing> _listings = new List <PlayerListing>();
     private LobbyCanvases _lobbyCanvases;
     private bool _ready = false;
-
     public override void OnEnable() 
     {
         base.OnEnable();
