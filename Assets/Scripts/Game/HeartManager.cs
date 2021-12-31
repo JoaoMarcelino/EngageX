@@ -5,24 +5,12 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
 
-public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable
+public class HeartManager : MonoBehaviourPunCallbacks
 {
-    private int _health = 0;
-    private long tickTime; 
-    private int Tick = 0;
-    private bool hasUpdated;
-
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info) 
-    {
-        if(stream.IsWriting)
-        {
-            stream.SendNext(_health);
-        }
-        else
-        {
-            _health = (int)stream.ReceiveNext();
-        }
-    }
+    private int _health;
+    private long _tickTime; 
+    private int _tick;
+    private bool _hasUpdated;
 
     public static long GetTimestamp(DateTime value)
     {
@@ -30,26 +18,28 @@ public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable
     }
     
     void Start(){
-        tickTime = GetTimestamp(DateTime.Now);
+        _tickTime = GetTimestamp(DateTime.Now);
+        _health = 0;
+        _tick = 0;
     }
 
     // Update is called once per frame
     void Update()
     {
-        hasUpdated = true;
+        _hasUpdated = true;
         
-        if ( GetTimestamp(DateTime.Now) - tickTime >= 10000){
-            Tick += 1;
-            tickTime = GetTimestamp(DateTime.Now);
-            hasUpdated = false;
+        if ( GetTimestamp(DateTime.Now) - _tickTime >= 10000){
+            _tick += 1;
+            _tickTime = GetTimestamp(DateTime.Now);
+            _hasUpdated = false;
         }
 
-        if(Tick % 10 == 0 & this.transform.localScale.x < 14 & !hasUpdated){
+        if(_tick % 10 == 0 & this.transform.localScale.x < 14 & !_hasUpdated){
             Vector3 scale = new Vector3(3, 3);
             this.transform.localScale += scale ; 
                 _health += (int) Math.Round(_health * 0.10);
             
-            hasUpdated = true;
+            _hasUpdated = true;
         }
     }
 
@@ -60,5 +50,4 @@ public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable
     public int getHealth(){
         return _health;
     }
-    
 }

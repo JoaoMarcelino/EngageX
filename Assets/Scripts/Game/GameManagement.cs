@@ -12,19 +12,23 @@ public class GameManagement : MonoBehaviourPun
     [SerializeField] private GameCanvas _gameCanvas;
     [SerializeField] private GameObject _playerPrefab;
     [SerializeField] private int _ticks;
+
     private Text TickText;
+    private long flagTimeStamp;
+
     public GameCanvas GameCanvas {get{return _gameCanvas;}}
     public PlayerManager PlayerManager{get; private set;}
-    private long flagTimeStamp =  GetTimestamp(DateTime.Now);
 
     public static long GetTimestamp(DateTime value)
     {
         return Int64.Parse(value.ToString("yyyyMMddHHmmssffff"));
     }
 
-    private void Start() {
+    private void Start(){
+        flagTimeStamp = GetTimestamp(DateTime.Now);
+
         Vector3 spawnPoint = new Vector3(0, 0, 0);
-        GameObject player = MasterManager.NetworkInstantiate(_playerPrefab, spawnPoint, Quaternion.identity);
+        GameObject player = MasterManager.NetworkInstantiate(_playerPrefab, spawnPoint, Quaternion.identity, false);
 
         if(!player.GetPhotonView().IsMine) return;
         

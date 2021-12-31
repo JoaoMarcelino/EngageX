@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Text;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
@@ -30,31 +34,15 @@ public class PlayerManager : MonoBehaviourPun
 
     private float halfMovement;
     private float fullMovement;
-
     private float moveX, moveY, minVal;
     
     public Sprite SowSprite;
-    ArrayList heartsList = new ArrayList();
 
     private bool hasMoved;
-
     private long flagTimeStamp =  GetTimestamp(DateTime.Now);
 
-    [SerializeField] List <GameObject> currentCollisions = new List <GameObject>();
-     
-    void OnTriggerEnter2D(Collider2D col) 
-    {
-        if(!base.photonView.IsMine) return;
-
-        currentCollisions.Add(col.gameObject);
-    }
- 
-    void OnTriggerExit2D(Collider2D col)
-    {
-        if(!base.photonView.IsMine) return;
-
-        currentCollisions.Remove(col.gameObject);
-    }
+    [SerializeField] private List <GameObject> currentCollisions = new List <GameObject>();
+    [SerializeField] private List<ObjectPosition> _heartList = new List<ObjectPosition>();
 
     private void Start()
     {
@@ -230,17 +218,51 @@ public class PlayerManager : MonoBehaviourPun
             healthGiven = (int) Math.Ceiling(_health.GetNew() * percentageSow);
             _health.Add(-healthGiven);
         }
+
+        List<ObjectPosition> coordinates = new List<ObjectPosition>();
         
-        createHeart(posX + fullMovement, posY, healthGiven);
-        createHeart(posX - fullMovement, posY, healthGiven);
+        coordinates.Add(new ObjectPosition(posX + fullMovement, posY));
+        coordinates.Add(new ObjectPosition(posX - fullMovement, posY));
+        coordinates.Add(new ObjectPosition(posX + halfMovement, posY + halfMovement));
+        coordinates.Add(new ObjectPosition(posX + halfMovement, posY - halfMovement));
+        coordinates.Add(new ObjectPosition(posX - halfMovement, posY + halfMovement));
+        coordinates.Add(new ObjectPosition(posX - halfMovement, posY - halfMovement));
 
-        createHeart(posX + halfMovement, posY + halfMovement, healthGiven);
-        createHeart(posX + halfMovement, posY - halfMovement, healthGiven);
+        coordinates.RemoveAll(t => _heartList.Contains(t));
 
-        createHeart(posX - halfMovement, posY + halfMovement, healthGiven);
-        createHeart(posX - halfMovement, posY - halfMovement, healthGiven);
+        if(coordinates.Count != 0)
+        {
+            MemoryStream stream = new MemoryStream();
+            BinaryFormatter formatter = new BinaryFormatter();
+
+            formatter.Serialize(stream, coordinates);
+
+            byte[] serializedCoordinates = stream.GetBuffer();
+            
+            base.photonView.RPC("RPC_HeartInstantiate", RpcTarget.All, serializedCoordinates, healthGiven);
+        }
     }
 
+    [PunRPC]
+    private void RPC_HeartInstantiate(byte[] serializedCoordinates, int health)
+    {
+        MemoryStream stream = new MemoryStream(serializedCoordinates);
+        BinaryFormatter formatter = new BinaryFormatter();
+
+        object coordinatesObject = formatter.Deserialize(stream);
+        List<ObjectPosition> coordinates = coordinatesObject as List<ObjectPosition>;
+
+        coordinates.RemoveAll(t => _heartList.Contains(t));
+
+        if(PhotonNetwork.IsMasterClient)
+        {
+            coordinates.ForEach(delegate(ObjectPosition coordinate){
+                createHeart(coordinate.X, coordinate.Y, health);
+            });
+        }
+
+        _heartList.AddRange(coordinates);
+    }
 
     public void OnClickHarvest(){
         float posX= transform.position.x - tilemapOffsetX;
@@ -271,19 +293,11 @@ public class PlayerManager : MonoBehaviourPun
 
         Vector2 position = new Vector2(posX, posY);
 
-        GameObject heart = MasterManager.NetworkInstantiate(_healthPrefab, position, Quaternion.identity);
+        GameObject heart = MasterManager.NetworkInstantiate(_healthPrefab, position, Quaternion.identity, true);
 
         heart.name = name;
 
         heart.GetComponent<HeartManager>().addHealth(health);
-
-        heartsList.Add(heart);
-    }
-
-    [PunRPC]
-    private void RPC_HeartInstantiate()
-    {
-
     }
 
     public int removeHeart(float posX, float posY){
@@ -297,12 +311,23 @@ public class PlayerManager : MonoBehaviourPun
         
         int heartValue = heart.GetComponent<HeartManager>().getHealth();
 
-        heartsList.Remove(heart);
         PhotonNetwork.Destroy(heart);
 
-        //Destroy(heart);
-
         return heartValue;
+    }
+
+    void OnTriggerEnter2D(Collider2D col) 
+    {
+        if(!base.photonView.IsMine) return;
+
+        currentCollisions.Add(col.gameObject);
+    }
+ 
+    void OnTriggerExit2D(Collider2D col)
+    {
+        if(!base.photonView.IsMine) return;
+
+        currentCollisions.Remove(col.gameObject);
     }
 
     /*
