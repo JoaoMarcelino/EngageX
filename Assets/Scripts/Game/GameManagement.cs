@@ -10,28 +10,30 @@ using Photon.Pun;
 public class GameManagement : MonoBehaviourPun
 {
     [SerializeField] private GameCanvas _gameCanvas;
-    [SerializeField] private int _ticks;
     [SerializeField] private GameObject _playerPrefab;
-    
-    public Text TickText;
+    [SerializeField] private int _ticks;
+    private Text TickText;
+    public GameCanvas GameCanvas {get{return _gameCanvas;}}
+    public PlayerManager PlayerManager{get; private set;}
     private long flagTimeStamp =  GetTimestamp(DateTime.Now);
 
     public static long GetTimestamp(DateTime value)
     {
         return Int64.Parse(value.ToString("yyyyMMddHHmmssffff"));
     }
+
     private void Start() {
         Vector3 spawnPoint = new Vector3(0, 0, 0);
         GameObject player = MasterManager.NetworkInstantiate(_playerPrefab, spawnPoint, Quaternion.identity);
 
         if(!player.GetPhotonView().IsMine) return;
         
-        PlayerManager playerManager = player.GetComponent<PlayerManager>();
+        PlayerManager = player.GetComponent<PlayerManager>();
 
-        if(playerManager != null)
+        if(PlayerManager != null)
         {
-            playerManager.FirstInitialize(_gameCanvas);
-            _gameCanvas.FirstInitialize(playerManager);
+            PlayerManager.FirstInitialize(this);
+            _gameCanvas.FirstInitialize(this);
         }
 
         GameObject camera = GameObject.FindWithTag("MainCamera");
@@ -45,6 +47,7 @@ public class GameManagement : MonoBehaviourPun
             }
         }
     }
+
     void Update()
     {
         if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 10000){

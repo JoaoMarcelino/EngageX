@@ -13,7 +13,7 @@ public class PlayerManager : MonoBehaviourPun
     [SerializeField] private GameObject _healthPrefab;
     private FixedJoystick _moveJoystick;
     private GameObject FoW;
-    private GameCanvas _gameCanvas;
+    public GameManagement GameManagement {get; private set;}
     private Pair _health = new Pair();
     private Pair _exp = new Pair();
     private Vector2 movementInput;
@@ -40,6 +40,22 @@ public class PlayerManager : MonoBehaviourPun
 
     private long flagTimeStamp =  GetTimestamp(DateTime.Now);
 
+    [SerializeField] List <GameObject> currentCollisions = new List <GameObject>();
+     
+    void OnTriggerEnter2D(Collider2D col) 
+    {
+        if(!base.photonView.IsMine) return;
+
+        currentCollisions.Add(col.gameObject);
+    }
+ 
+    void OnTriggerExit2D(Collider2D col)
+    {
+        if(!base.photonView.IsMine) return;
+
+        currentCollisions.Remove(col.gameObject);
+    }
+
     private void Start()
     {
         this.halfMovement = 0.5f * scaleMap;
@@ -52,9 +68,9 @@ public class PlayerManager : MonoBehaviourPun
             _moveJoystick = moveJoystickObject.GetComponent<FixedJoystick>();
         }
     }
-    public void FirstInitialize(GameCanvas gameCanvas)
+    public void FirstInitialize(GameManagement gameManagement)
     {
-        _gameCanvas = gameCanvas;
+        GameManagement = gameManagement;
     }
 
     public static long GetTimestamp(DateTime value)
@@ -102,13 +118,13 @@ public class PlayerManager : MonoBehaviourPun
         if(_health.WasUpdated())
         {
             _health.Update();
-            _gameCanvas.PlayerStats.SetHealthText("Health: " + _health.GetNew().ToString());
+            GameManagement.GameCanvas.PlayerStats.SetHealth(_health.GetNew());
         }
         
         if(_exp.WasUpdated())
         {
             _exp.Update();
-            _gameCanvas.PlayerStats.SetExpText("Exp: " + _exp.GetNew().ToString());
+            GameManagement.GameCanvas.PlayerStats.SetExp(_exp.GetNew());
         }
     }
 
@@ -159,7 +175,6 @@ public class PlayerManager : MonoBehaviourPun
     }
 
     private void checkBorders(Vector3 direction){
-
         float maxValue = 10 * scaleMap;
         int offset = scaleMap;
         float posY = transform.position.y;
@@ -189,7 +204,7 @@ public class PlayerManager : MonoBehaviourPun
             transform.position = new Vector3(posX, - maxValue - halfMovement);
         }
         String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, transform.position, transform.position);
-        Debug.Log(strings);
+        //Debug.Log(strings);
     }
 
     public void OnMove(InputValue value)
@@ -197,10 +212,6 @@ public class PlayerManager : MonoBehaviourPun
         movementInput = value.Get<Vector2>();
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        transform.position -= direction;
-    }
     public void OnClickSow(){
 
         float posX= transform.position.x - tilemapOffsetX;
@@ -235,17 +246,16 @@ public class PlayerManager : MonoBehaviourPun
         float posX= transform.position.x - tilemapOffsetX;
         float posY = transform.position.y - tilemapOffsetY;
 
-
         int healthChange = removeHeart(posX, posY);
 
         if (healthChange != -1){
             _health.Add(healthChange);
-            Debug.Log(_health.GetNew());
+            //Debug.Log(_health.GetNew());
         }
     }
 
 
-    public void onClickLevelUp(){
+    public void OnClickLevelUp(){
         int healthToLevel = (int) Math.Ceiling(_health.GetNew() * percentageUp);
         _health.Add(-healthToLevel);
         _exp.Add(healthToLevel);
@@ -260,6 +270,7 @@ public class PlayerManager : MonoBehaviourPun
         }
 
         Vector2 position = new Vector2(posX, posY);
+
         GameObject heart = MasterManager.NetworkInstantiate(_healthPrefab, position, Quaternion.identity);
 
         heart.name = name;
@@ -267,6 +278,12 @@ public class PlayerManager : MonoBehaviourPun
         heart.GetComponent<HeartManager>().addHealth(health);
 
         heartsList.Add(heart);
+    }
+
+    [PunRPC]
+    private void RPC_HeartInstantiate()
+    {
+
     }
 
     public int removeHeart(float posX, float posY){

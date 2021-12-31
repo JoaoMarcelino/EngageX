@@ -3,13 +3,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Photon.Pun;
 
-public class HeartManager : MonoBehaviour
+public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable
 {
-    private int Health = 0;
+    private int _health = 0;
     private long tickTime; 
     private int Tick = 0;
     private bool hasUpdated;
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info) 
+    {
+        if(stream.IsWriting)
+        {
+            stream.SendNext(_health);
+        }
+        else
+        {
+            _health = (int)stream.ReceiveNext();
+        }
+    }
 
     public static long GetTimestamp(DateTime value)
     {
@@ -34,19 +47,18 @@ public class HeartManager : MonoBehaviour
         if(Tick % 10 == 0 & this.transform.localScale.x < 14 & !hasUpdated){
             Vector3 scale = new Vector3(3, 3);
             this.transform.localScale += scale ; 
-                Health += (int) Math.Round(Health * 0.10);
+                _health += (int) Math.Round(_health * 0.10);
             
             hasUpdated = true;
         }
-        
     }
 
     public void addHealth(int value){
-        Health += value;
+        _health += value;
     }
 
     public int getHealth(){
-        return Health;
+        return _health;
     }
     
 }

@@ -1,14 +1,17 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
-public class UpButton : MonoBehaviour, IPointerClickHandler
+
+public class UpButton : MonoBehaviour
 {
-    private GameCanvas _gameCanvas;
-    public void FirstInitialize(GameCanvas gameCanvas)
+    private GameManagement _gameManagement;
+
+    public void FirstInitialize(GameManagement gameManagement)
     {
-        _gameCanvas = gameCanvas;
+        _gameManagement = gameManagement;
     }
+
     public void OnPointerClick(PointerEventData pointerEventData)
     {
-        _gameCanvas.Player.onClickLevelUp();
+        _gameManagement.PlayerManager.OnClickLevelUp();
     }
 }
