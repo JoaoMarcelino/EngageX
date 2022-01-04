@@ -5,21 +5,38 @@ using UnityEngine.UI;
 
 public class GameCanvas : MonoBehaviour
 {
-    [SerializeField] private GameManagement _gameManager;
-    public GameManagement GameManagement { get { return _gameManager;}}
+    [SerializeField] private GameManagement _gameManagement;
+    public GameManagement GameManagement { get { return _gameManagement;}}
+    
     [SerializeField] private PlayerStats _playerStats;
-    public PlayerStats PlayerStats { get { return _playerStats;}}
-    [SerializeField] private SowButton _sowButton;
-    [SerializeField] private HarvestButton _harvestButton;
-    [SerializeField] private UpButton _upButton;
+    public PlayerStats PlayerStats { get { return _playerStats;}}  
+
+    [SerializeField] private NavigationControls _navigationControls;
+    public NavigationControls NavigationControls { get { return _navigationControls;}}
+
+    [SerializeField] private EncounterControls _encounterControls;
+    public EncounterControls EncounterControls { get { return _encounterControls;}}
+
     [SerializeField] private Text _ticksText;
 
-    public void FirstInitialize(GameManagement gameManager)
+    public void FirstInitialize(GameManagement gameManagement)
     {
-        _gameManager = gameManager;
-        _sowButton.FirstInitialize(gameManager);
-        _harvestButton.FirstInitialize(gameManager);
-        _upButton.FirstInitialize(gameManager);
+        _gameManagement = gameManagement;
+
+        _encounterControls.FirstInitialize(this);
+        _navigationControls.FirstInitialize(this);
+    }
+
+    public void EnableEncounter()
+    {
+        _navigationControls.Hide();
+        _encounterControls.Show();
+    }
+
+    public void DisableEncounter()
+    {
+        _encounterControls.Hide();
+        _navigationControls.Show();
     }
 
     public void SetTicksText(string text)

@@ -5,21 +5,40 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
 
-public class HeartManager : MonoBehaviourPunCallbacks
+public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable
 {
-    private int _health;
+    [SerializeField] private int _health;
+
+    public int Health {
+        get {return _health;}
+        set {_health = value;}
+    }
+
     private long _tickTime; 
     private int _tick;
     private bool _hasUpdated;
 
-    public static long GetTimestamp(DateTime value)
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info) 
     {
-        return Int64.Parse(value.ToString("yyyyMMddHHmmssffff"));
+        if(stream.IsWriting)
+        {
+            stream.SendNext(_health);
+        }
+        else
+        {
+            _health = (int)stream.ReceiveNext();
+        }
     }
-    
-    void Start(){
-        _tickTime = GetTimestamp(DateTime.Now);
-        _health = 0;
+
+    void Start()
+    {
+        FirstInitialize(GameManagement.GetTimestamp(DateTime.Now), 0);
+    }
+
+    public void FirstInitialize(long tickTime, int health)
+    {
+        _tickTime = tickTime;
+        _health = health;
         _tick = 0;
     }
 
@@ -28,26 +47,20 @@ public class HeartManager : MonoBehaviourPunCallbacks
     {
         _hasUpdated = true;
         
-        if ( GetTimestamp(DateTime.Now) - _tickTime >= 10000){
+        if (GameManagement.GetTimestamp(DateTime.Now) - _tickTime >= 10000)
+        {
             _tick += 1;
-            _tickTime = GetTimestamp(DateTime.Now);
+            _tickTime = GameManagement.GetTimestamp(DateTime.Now);
             _hasUpdated = false;
         }
 
-        if(_tick % 10 == 0 & this.transform.localScale.x < 14 & !_hasUpdated){
+        if(_tick % 10 == 0 & this.transform.localScale.x < 14 & !_hasUpdated)
+        {
             Vector3 scale = new Vector3(3, 3);
-            this.transform.localScale += scale ; 
-                _health += (int) Math.Round(_health * 0.10);
+            this.transform.localScale += scale; 
+            _health += (int) Math.Round(_health * 0.10);
             
             _hasUpdated = true;
         }
-    }
-
-    public void addHealth(int value){
-        _health += value;
-    }
-
-    public int getHealth(){
-        return _health;
     }
 }

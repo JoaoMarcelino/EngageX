@@ -2,9 +2,9 @@ class PlayerStatusInfo
 {
     public int Health {get; set;}
     public int Exp {get; set;}
-    public int Id {get; set;}
+    public string NickName {get; set;}
 
-    public void Update(int health, int exp)
+    public PlayerStatusInfo(int health, int exp, string NickName)
     {
         Health = health;
         Exp = exp;

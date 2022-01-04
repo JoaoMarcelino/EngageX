@@ -1,8 +1,10 @@
 [System.Serializable]
-public class ObjectPosition
+public class HeartInfo
 {
     private float _x;
     private float _y;
+    private long _timeInstantiated;
+    private int _health;
 
     public float X
     {
@@ -10,12 +12,13 @@ public class ObjectPosition
         set { _x = value;}
     }
     
-    public float Y{
+    public float Y
+    {
         get { return _y;}
         set { _y = value;}
     }
 
-    public ObjectPosition(float x, float y)
+    public HeartInfo(float x, float y)
     {
         _x = x;
         _y = y;

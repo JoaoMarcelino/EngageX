@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,15 +10,14 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
 {
     [SerializeField] private Transform _content;
     [SerializeField] private PlayerListing _playerListing;
-    [SerializeField] private Text _readyUpText;
+
     private List<PlayerListing> _listings = new List <PlayerListing>();
     private LobbyCanvases _lobbyCanvases;
-    private bool _ready = false;
+    
     public override void OnEnable() 
     {
         base.OnEnable();
 
-        //SetReadyUp(false);
         GetCurrentRoomPlayers();
     }
     
@@ -34,15 +34,6 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
     public void FirstInitialize(LobbyCanvases canvases)
     {
         _lobbyCanvases = canvases;
-    }
-
-    private void SetReadyUp(bool state)
-    {
-        _ready = state;
-        if(_ready)
-            _readyUpText.text = "Ready";
-        else
-            _readyUpText.text = "Not Ready";
     }
 
     private void GetCurrentRoomPlayers()
@@ -78,6 +69,7 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
     {
         _lobbyCanvases.CurrentRoomCanvas.LeaveRoomMenu.OnClick_LeaveRoom();
     }
+
     public override void OnPlayerEnteredRoom(Player newPlayer) 
     {
         AddPlayerListing(newPlayer);
@@ -92,39 +84,34 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
         }
     }
 
+    private static T GetProperty<T>(string key, T deafult)
+    {
+        if (PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue(key, out object value))
+        {
+            return (T)value;
+        }
+        else return deafult;
+    }
+
+    private static void SetProperty(string key, object value)
+    {
+        ExitGames.Client.Photon.Hashtable table = PhotonNetwork.CurrentRoom.CustomProperties;
+        if (table.ContainsKey(key))
+        {
+            table[key] = value;
+        }
+        else
+        {
+            table.Add(key, value);
+        }
+        PhotonNetwork.CurrentRoom.SetCustomProperties(table);
+    }
+
     public void OnClick_StartGame()
     {
         if(PhotonNetwork.IsMasterClient)
         {
-            /*
-            for(int i  = 0; i < _listings.Count; ++i)
-            {
-                if(_listings[i].Player != PhotonNetwork.LocalPlayer)
-                {
-                    if(!_listings[i].Ready)
-                        return;
-                }
-            }
-            */
-
-            //PhotonNetwork.CurrentRoom.IsOpen = false;
-            //PhotonNetwork.CurrentRoom.IsVisible = false;
-            PhotonNetwork.LoadLevel(1);
+            PhotonNetwork.LoadLevel(2);
         }
-    }
-    public void OnClick_ReadyUp()
-    {
-        if(!PhotonNetwork.IsMasterClient)
-        {
-            SetReadyUp(!_ready);
-            base.photonView.RPC("RPC_ChangeReadyState", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, _ready);
-        }
-    }
-    [PunRPC]
-    private void RPC_ChangeReadyState(Player player, bool ready)
-    {
-        int index = _listings.FindIndex( x => x.Player == player);
-        if(index != -1)
-            _listings[index].Ready = ready;
     }
 }

@@ -41,6 +41,10 @@ MonoBehaviour:
   - RespawnSpaceship
   - RPC_ChangeReadyState
   - RPC_HeartInstantiate
+  - RPC_HeartDestroy
+  - RPC_RequestCurrentHeartsList
+  - RPC_SetCurrentHeartsList
+  - RPC_SyncTicks
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

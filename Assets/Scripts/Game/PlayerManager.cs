@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
@@ -13,15 +14,16 @@ using Photon.Pun;
 
 public class PlayerManager : MonoBehaviourPun
 {
-    //Stores input from the PlayerInput
     [SerializeField] private GameObject _healthPrefab;
-    private FixedJoystick _moveJoystick;
     private GameObject FoW;
     public GameManagement GameManagement {get; private set;}
     private Pair _health = new Pair();
+    public int Health {get{return _health.GetNew();}}
     private Pair _exp = new Pair();
+    public int Exp {get{return _exp.GetNew();}}
     private Vector2 movementInput;
     private Vector3 direction;
+    private bool _inEncounter;
 
     public double percentageSow = 0.33;
     public double percentageUp = 0.5;
@@ -34,75 +36,34 @@ public class PlayerManager : MonoBehaviourPun
 
     private float halfMovement;
     private float fullMovement;
-    private float moveX, moveY, minVal;
-    
-    public Sprite SowSprite;
+    private float minVal;
 
     private bool hasMoved;
-    private long flagTimeStamp =  GetTimestamp(DateTime.Now);
+    private long flagTimeStamp = GameManagement.GetTimestamp(DateTime.Now);
 
-    [SerializeField] private List <GameObject> currentCollisions = new List <GameObject>();
-    [SerializeField] private List<ObjectPosition> _heartList = new List<ObjectPosition>();
+    [SerializeField] private List<GameObject> _currentCollisions = new List<GameObject>();
 
     private void Start()
     {
         this.halfMovement = 0.5f * scaleMap;
         this.fullMovement = 1f * scaleMap;
 
-        GameObject moveJoystickObject = GameObject.FindGameObjectWithTag("Joystick");
-
-        if(moveJoystickObject != null)
-        {
-            _moveJoystick = moveJoystickObject.GetComponent<FixedJoystick>();
-        }
+        _health.Add(10);
     }
     public void FirstInitialize(GameManagement gameManagement)
     {
         GameManagement = gameManagement;
     }
-
-    public static long GetTimestamp(DateTime value)
-    {
-        return Int64.Parse(value.ToString("yyyyMMddHHmmssffff"));
-    }
-
-
     void Update()
     {   
-        if(!base.photonView.IsMine) return;
+        if(!base.photonView.IsMine || _inEncounter) return;
+        
+        ProcessMovement();
+        UpdateStats();
+    }
 
-        //this.FoW.GetComponent<SpriteRenderer>().sprite = new SPRITE
-        moveX = _moveJoystick.Horizontal;
-        moveY = _moveJoystick.Vertical;
-        minVal = 0.4f;
-
-
-        //Cursed if else if pq nao dava doutra maneira nao sei pq
-        if(moveX == 0 )
-        {
-            hasMoved = false;
-        }
-        else if(moveX >minVal && !hasMoved)
-        {
-
-            hasMoved = true;
-            flagTimeStamp = GetTimestamp(DateTime.Now);
-
-            GetMovementDirection();
-        }
-        else if(moveX < -minVal && !hasMoved)
-        {
-
-            hasMoved = true;
-            flagTimeStamp = GetTimestamp(DateTime.Now);
-
-            GetMovementDirection();
-        }
-
-        if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 5000){
-            hasMoved = false;
-        }
-
+    public void UpdateStats()
+    {
         if(_health.WasUpdated())
         {
             _health.Update();
@@ -116,7 +77,38 @@ public class PlayerManager : MonoBehaviourPun
         }
     }
 
-    public void GetMovementDirection()
+    public void ProcessMovement()
+    {
+        float moveX = GameManagement.GameCanvas.NavigationControls.FixedJoystick.Horizontal;
+        float moveY = GameManagement.GameCanvas.NavigationControls.FixedJoystick.Vertical;
+
+        minVal = 0.4f;
+
+        if(moveX == 0)
+        {
+            hasMoved = false;
+        }
+        else if(moveX > minVal && !hasMoved)
+        {
+            hasMoved = true;
+            flagTimeStamp = GameManagement.GetTimestamp(DateTime.Now);
+
+            GetMovementDirection(moveX, moveY);
+        }
+        else if(moveX < -minVal && !hasMoved)
+        {
+            hasMoved = true;
+            flagTimeStamp = GameManagement.GetTimestamp(DateTime.Now);
+
+            GetMovementDirection(moveX, moveY);
+        }
+
+        if(GameManagement.GetTimestamp(DateTime.Now) - flagTimeStamp >= 5000){
+            hasMoved = false;
+        }
+    }
+
+    public void GetMovementDirection(float moveX, float moveY)
     {
         float minVal = 0.4f;
         if (moveX < -minVal)
@@ -134,7 +126,6 @@ public class PlayerManager : MonoBehaviourPun
                 direction = new Vector3(-fullMovement, 0);
             }
             transform.position += direction;
-            //UpdateFogOfWar();
         }
         else if (moveX> minVal)
         {
@@ -151,23 +142,18 @@ public class PlayerManager : MonoBehaviourPun
                 direction = new Vector3(fullMovement, 0);
             }
 
-
             transform.position += direction;
         }
         
-        //String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, -10 * scaleMap - direction.x, 10 * scaleMap + direction.x);
-        //Debug.Log(strings);
-        
         checkBorders(direction);
-        //UpdateFogOfWar();
     }
 
-    private void checkBorders(Vector3 direction){
+    private void checkBorders(Vector3 direction)
+    {
         float maxValue = 10 * scaleMap;
         int offset = scaleMap;
         float posY = transform.position.y;
         float posX= transform.position.x;
-
 
         //X LIMITS FOR NORMAL VALUES
         if (posX < -maxValue && posX == -maxValue - fullMovement){
@@ -192,18 +178,21 @@ public class PlayerManager : MonoBehaviourPun
             transform.position = new Vector3(posX, - maxValue - halfMovement);
         }
         String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, transform.position, transform.position);
-        //Debug.Log(strings);
     }
 
     public void OnMove(InputValue value)
     {
+        if(!base.photonView.IsMine) return;
+
         movementInput = value.Get<Vector2>();
     }
 
-    public void OnClickSow(){
+    public void OnClickSow()
+    {
+        if(!base.photonView.IsMine) return;
 
-        float posX= transform.position.x - tilemapOffsetX;
-        float posY = transform.position.y - tilemapOffsetY;
+        float posX = GetPlayerPositionX();
+        float posY = GetPlayerPositionY();
 
         int healthGiven;
         int aux = 10; 
@@ -219,76 +208,63 @@ public class PlayerManager : MonoBehaviourPun
             _health.Add(-healthGiven);
         }
 
-        List<ObjectPosition> coordinates = new List<ObjectPosition>();
+        List<HeartInfo> heartInfoList = new List<HeartInfo>();
         
-        coordinates.Add(new ObjectPosition(posX + fullMovement, posY));
-        coordinates.Add(new ObjectPosition(posX - fullMovement, posY));
-        coordinates.Add(new ObjectPosition(posX + halfMovement, posY + halfMovement));
-        coordinates.Add(new ObjectPosition(posX + halfMovement, posY - halfMovement));
-        coordinates.Add(new ObjectPosition(posX - halfMovement, posY + halfMovement));
-        coordinates.Add(new ObjectPosition(posX - halfMovement, posY - halfMovement));
+        heartInfoList.Add(new HeartInfo(posX + fullMovement, posY));
+        heartInfoList.Add(new HeartInfo(posX - fullMovement, posY));
+        heartInfoList.Add(new HeartInfo(posX + halfMovement, posY + halfMovement));
+        heartInfoList.Add(new HeartInfo(posX + halfMovement, posY - halfMovement));
+        heartInfoList.Add(new HeartInfo(posX - halfMovement, posY + halfMovement));
+        heartInfoList.Add(new HeartInfo(posX - halfMovement, posY - halfMovement));
 
-        coordinates.RemoveAll(t => _heartList.Contains(t));
+        heartInfoList = FilterDuplicateHearts(heartInfoList);
 
-        if(coordinates.Count != 0)
+        if(heartInfoList.Count != 0)
         {
             MemoryStream stream = new MemoryStream();
             BinaryFormatter formatter = new BinaryFormatter();
 
-            formatter.Serialize(stream, coordinates);
+            formatter.Serialize(stream, heartInfoList);
 
-            byte[] serializedCoordinates = stream.GetBuffer();
+            byte[] byteArrayHeartList = stream.GetBuffer();
             
-            base.photonView.RPC("RPC_HeartInstantiate", RpcTarget.All, serializedCoordinates, healthGiven);
+            base.photonView.RPC("RPC_HeartInstantiate", RpcTarget.All, byteArrayHeartList, healthGiven);
         }
     }
 
-    [PunRPC]
-    private void RPC_HeartInstantiate(byte[] serializedCoordinates, int health)
+    public void OnClickHarvest()
     {
-        MemoryStream stream = new MemoryStream(serializedCoordinates);
-        BinaryFormatter formatter = new BinaryFormatter();
+        if(!base.photonView.IsMine) return;
 
-        object coordinatesObject = formatter.Deserialize(stream);
-        List<ObjectPosition> coordinates = coordinatesObject as List<ObjectPosition>;
+        float posX = GetPlayerPositionX();
+        float posY = GetPlayerPositionY();
 
-        coordinates.RemoveAll(t => _heartList.Contains(t));
+        GameObject heart = _currentCollisions.SingleOrDefault(x => x.gameObject.tag == "HealthItem");
 
-        if(PhotonNetwork.IsMasterClient)
+        if(heart != null)
         {
-            coordinates.ForEach(delegate(ObjectPosition coordinate){
-                createHeart(coordinate.X, coordinate.Y, health);
-            });
-        }
-
-        _heartList.AddRange(coordinates);
-    }
-
-    public void OnClickHarvest(){
-        float posX= transform.position.x - tilemapOffsetX;
-        float posY = transform.position.y - tilemapOffsetY;
-
-        int healthChange = removeHeart(posX, posY);
-
-        if (healthChange != -1){
-            _health.Add(healthChange);
-            //Debug.Log(_health.GetNew());
+            int playerId = base.photonView.ViewID;
+            int heartId = heart.GetComponent<PhotonView>().ViewID;
+            base.photonView.RPC("RPC_HeartDestroy", RpcTarget.All, posX, posY, playerId);
         }
     }
 
+    public void OnClickLevelUp()
+    {
+        if(!base.photonView.IsMine) return;
 
-    public void OnClickLevelUp(){
         int healthToLevel = (int) Math.Ceiling(_health.GetNew() * percentageUp);
+
         _health.Add(-healthToLevel);
         _exp.Add(healthToLevel);
     }
 
-    public void createHeart(float posX, float posY, int health)
+    private void CreateHeart(float posX, float posY, int health)
     {  
-        String name =  "Heart_" + (posX + tilemapOffsetX)  + "_" + (posY + tilemapOffsetY);
+        String name =  "Heart_" + posX  + "_" + posY;
 
-        if ( GameObject.Find(name)){
-            return ;
+        if (GameObject.Find(name)){
+            return;
         }
 
         Vector2 position = new Vector2(posX, posY);
@@ -297,37 +273,110 @@ public class PlayerManager : MonoBehaviourPun
 
         heart.name = name;
 
-        heart.GetComponent<HeartManager>().addHealth(health);
+        heart.GetComponent<HeartManager>().Health = health;
     }
 
-    public int removeHeart(float posX, float posY){
-        String name =  "Heart_" + (posX + tilemapOffsetX)  + "_" + (posY + tilemapOffsetY);
+    private float GetPlayerPositionX()
+    {
+        return transform.position.x - tilemapOffsetX;
+    }
 
-        GameObject heart = GameObject.Find(name);
+    private float GetPlayerPositionY()
+    {
+        return transform.position.y - tilemapOffsetY;
+    }
 
-        if (!heart){
-            return -1;
+    [PunRPC]
+    private void RPC_HeartInstantiate(byte[] byteArrayHeartList, int health)
+    {
+        MemoryStream stream = new MemoryStream(byteArrayHeartList);
+        BinaryFormatter formatter = new BinaryFormatter();
+
+        object heartInfoObject = formatter.Deserialize(stream);
+        List<HeartInfo> heartInfoList = heartInfoObject as List<HeartInfo>;
+
+        heartInfoList = FilterDuplicateHearts(heartInfoList);
+
+        if(PhotonNetwork.IsMasterClient)
+        {
+            heartInfoList.ForEach(delegate(HeartInfo heartInfo){
+                CreateHeart(heartInfo.X, heartInfo.Y, health);
+            });
         }
-        
-        int heartValue = heart.GetComponent<HeartManager>().getHealth();
 
-        PhotonNetwork.Destroy(heart);
-
-        return heartValue;
+        GameManagement.HeartList.AddRange(heartInfoList);
     }
 
-    void OnTriggerEnter2D(Collider2D col) 
+    [PunRPC]
+    private void RPC_HeartDestroy(float x, float y, int playerId)
+    {
+        if(PhotonNetwork.IsMasterClient)
+        {
+            String name =  "Heart_" + x  + "_" + y;
+
+            GameObject heart = GameObject.Find(name);
+
+            if (!heart)
+            {
+                Debug.Log("RPC method called for non existing heart!");
+                return;
+            }
+
+            int health = heart.GetComponent<HeartManager>().Health;
+            Debug.Log(health);
+            GameObject player = PhotonView.Find(playerId).gameObject;
+            player.GetComponent<PlayerManager>().AddHealth(health);
+            PhotonNetwork.Destroy(heart);
+        }
+
+        HeartInfo coordinate = GameManagement.HeartList.SingleOrDefault(r => r.X == x && r.Y == y);
+        
+        if(coordinate == null)
+        {
+            Debug.Log("RPC method called for non existing heart!");
+            return;
+        }
+
+        GameManagement.HeartList.Remove(coordinate);
+    }
+
+    private List<HeartInfo> FilterDuplicateHearts(List<HeartInfo> heartInfoList)
+    {
+        return heartInfoList.Where(
+            localHeartInfo => GameManagement.HeartList.All(
+                globalHeartInfo =>
+                    localHeartInfo.X != globalHeartInfo.X || 
+                    localHeartInfo.Y != globalHeartInfo.Y)
+        ).ToList();
+    }
+
+    public void AddHealth(int health)
+    {
+        _health.Add(health);
+    }
+
+    void OnTriggerEnter2D(Collider2D col)
     {
         if(!base.photonView.IsMine) return;
 
-        currentCollisions.Add(col.gameObject);
+        _currentCollisions.Add(col.gameObject);
+
+        int players = _currentCollisions.Where(x => x.tag == "Player").Count();
+
+        if(players == 1)
+        {
+            _inEncounter = true;
+            GameManagement.GameCanvas.EnableEncounter(); 
+        }
+        else if(players > 1)
+            transform.position -= direction;
     }
  
     void OnTriggerExit2D(Collider2D col)
     {
         if(!base.photonView.IsMine) return;
 
-        currentCollisions.Remove(col.gameObject);
+        _currentCollisions.Remove(col.gameObject);
     }
 
     /*
@@ -342,9 +391,9 @@ public class PlayerManager : MonoBehaviourPun
             int sum = this.health + opponent.getHealth * 0.5;
 
             if (winner){
-                this.addHealth(sum * 0.5);
+                this.AddHealth(sum * 0.5);
             }else{
-                opponent.addHealth(sum * 0.5);
+                opponent.AddHealth(sum * 0.5);
             }
 
         }
@@ -362,7 +411,7 @@ public class PlayerManager : MonoBehaviourPun
                 
                 this.Health -= aux;
                 if (Random.Range(0, 100) < 20){
-                    opponent.addHealth(aux);
+                    opponent.AddHealth(aux);
                 }
             }
             else{ 
@@ -379,9 +428,9 @@ public class PlayerManager : MonoBehaviourPun
         if (isFirst){
             int auxHealth = opponent.getHealth() * 0.5;
 
-            opponent.addHealth(health * 0.5);
+            opponent.AddHealth(health * 0.5);
 
-            this.addHealth(auxHealth);
+            this.AddHealth(auxHealth);
         }
 
     }
@@ -393,7 +442,7 @@ public class PlayerManager : MonoBehaviourPun
 
         if (isFirst){
             if (Random.Range(0, 100) < 25){
-                this.addHealth(opponent.getHealth() * 0.25);
+                this.AddHealth(opponent.getHealth() * 0.25);
             }
             else{ 
                 this.Health = 0;

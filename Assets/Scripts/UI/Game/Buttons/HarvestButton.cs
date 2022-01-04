@@ -3,15 +3,15 @@ using UnityEngine.EventSystems;
 
 public class HarvestButton : MonoBehaviour, IPointerClickHandler
 {
-    private GameManagement _gameManagement;
+    private GameCanvas _gameCanvas;
 
-    public void FirstInitialize(GameManagement gameManagement)
+    public void FirstInitialize(GameCanvas gameCanvas)
     {
-        _gameManagement = gameManagement;
+        _gameCanvas = gameCanvas;
     }
 
     public void OnPointerClick(PointerEventData pointerEventData)
     {
-        _gameManagement.PlayerManager.OnClickHarvest();
+        _gameCanvas.GameManagement.PlayerManager.OnClickHarvest();
     }
 }
