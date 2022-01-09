@@ -45,6 +45,13 @@ MonoBehaviour:
   - RPC_RequestCurrentHeartsList
   - RPC_SetCurrentHeartsList
   - RPC_SyncTicks
+  - RPC_RequestTicks
+  - RPC_SetTicks
+  - RPC_Initialize
+  - RPC_RequestInitialization
+  - RPC_UpdateLeaderboard
+  - RPC_UpdatePlayerStatus
+  - RPC_UpdatePlayers
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

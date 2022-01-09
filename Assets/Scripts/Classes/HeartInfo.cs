@@ -3,8 +3,6 @@ public class HeartInfo
 {
     private float _x;
     private float _y;
-    private long _timeInstantiated;
-    private int _health;
 
     public float X
     {

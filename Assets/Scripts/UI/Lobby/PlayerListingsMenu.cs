@@ -84,29 +84,6 @@ public class PlayerListingsMenu : MonoBehaviourPunCallbacks
         }
     }
 
-    private static T GetProperty<T>(string key, T deafult)
-    {
-        if (PhotonNetwork.CurrentRoom.CustomProperties.TryGetValue(key, out object value))
-        {
-            return (T)value;
-        }
-        else return deafult;
-    }
-
-    private static void SetProperty(string key, object value)
-    {
-        ExitGames.Client.Photon.Hashtable table = PhotonNetwork.CurrentRoom.CustomProperties;
-        if (table.ContainsKey(key))
-        {
-            table[key] = value;
-        }
-        else
-        {
-            table.Add(key, value);
-        }
-        PhotonNetwork.CurrentRoom.SetCustomProperties(table);
-    }
-
     public void OnClick_StartGame()
     {
         if(PhotonNetwork.IsMasterClient)

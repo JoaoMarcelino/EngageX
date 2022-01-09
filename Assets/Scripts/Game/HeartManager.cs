@@ -8,59 +8,61 @@ using Photon.Pun;
 public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable
 {
     [SerializeField] private int _health;
+    private bool _initialized = false;
+    private int _ticks;
+    private long _heartCreationTime;
 
-    public int Health {
+
+    public int Health 
+    {
         get {return _health;}
         set {_health = value;}
     }
-
-    private long _tickTime; 
-    private int _tick;
-    private bool _hasUpdated;
 
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info) 
     {
         if(stream.IsWriting)
         {
-            stream.SendNext(_health);
+            stream.SendNext(Health);
         }
         else
         {
-            _health = (int)stream.ReceiveNext();
+            Health = (int)stream.ReceiveNext();
         }
     }
 
-    void Start()
+    private int GetCurrentModuledTicks()
     {
-        FirstInitialize(GameManagement.GetTimestamp(DateTime.Now), 0);
+        return GetCurrentTicks()/MasterManager.GameSettings.HeartUpgradeTicks;
     }
 
-    public void FirstInitialize(long tickTime, int health)
+    private int GetCurrentTicks()
     {
-        _tickTime = tickTime;
-        _health = health;
-        _tick = 0;
+        return (int) (MasterManager.GetCurrentTimestamp() - _heartCreationTime)/MasterManager.GameSettings.EachTickTime;
+    }
+
+    public void FirstInitialize(int health)
+    {
+        Health = health;
+        _heartCreationTime = MasterManager.GetCurrentTimestamp();
+        _ticks = GetCurrentModuledTicks();
+        _initialized = true;
     }
 
     // Update is called once per frame
     void Update()
     {
-        _hasUpdated = true;
-        
-        if (GameManagement.GetTimestamp(DateTime.Now) - _tickTime >= 10000)
-        {
-            _tick += 1;
-            _tickTime = GameManagement.GetTimestamp(DateTime.Now);
-            _hasUpdated = false;
-        }
+        if(!base.photonView.IsMine | !_initialized) return;
 
-        if(_tick % 10 == 0 & this.transform.localScale.x < 14 & !_hasUpdated)
-        {
+        int currentTicks = GetCurrentModuledTicks();
+
+        if(currentTicks > _ticks & transform.localScale.x <14)
+        { 
+            _ticks = currentTicks;
+            Debug.Log(currentTicks);
             Vector3 scale = new Vector3(3, 3);
             this.transform.localScale += scale; 
             _health += (int) Math.Round(_health * 0.10);
-            
-            _hasUpdated = true;
         }
     }
 }

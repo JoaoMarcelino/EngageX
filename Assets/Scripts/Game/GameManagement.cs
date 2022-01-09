@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -8,48 +9,87 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
+using ExitGames.Client.Photon;
 using Photon.Pun;
 using Photon.Realtime;
 
-public class GameManagement : MonoBehaviourPun
+public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
 {
     [SerializeField] private GameCanvas _gameCanvas;
     [SerializeField] private GameObject _playerPrefab;
-    [SerializeField] private int _ticks;
-    [SerializeField] private List<HeartInfo> _heartList = new List<HeartInfo>();
+    [SerializeField] private int _ticks = 0;
     [SerializeField] private List<PlayerStatusInfo> _leaderboardList = new List<PlayerStatusInfo>();
-    private Text TickText;
-    private long flagTimeStamp;
-    private bool _initialized = false;
+    [SerializeField] private long _roomCreationTime;
 
-    public List<HeartInfo> HeartList {get{return _heartList;}}
+    private bool _initializedByMasterClient = false;
+
+    public List<PlayerStatusInfo> LeaderboardList {get{return _leaderboardList;}}
     public GameCanvas GameCanvas {get{return _gameCanvas;}}
     public PlayerManager PlayerManager{get; private set;}
+    public PlayerMovement PlayerMovement{get; private set;}
+    public long RoomCreationTime {get{return _roomCreationTime;}}
 
-    public static long GetTimestamp(DateTime value)
+    private const byte RequestInitializationEvent = 1;
+    private const byte InitializeEvent = 2;
+    private const byte UpdateMasterClientEvent = 3;
+    private const byte RenderLeaderboardEvent = 4;
+
+    private GameObject SpawnPlayer()
     {
-        return Int64.Parse(value.ToString("yyyyMMddHHmmssffff"));
+        Vector3 origin = new Vector3(0, 0, 0);
+        GameObject player =  MasterManager.NetworkInstantiate(_playerPrefab, origin, Quaternion.identity, false);
+
+        System.Random randomGenerator = new System.Random();
+        
+        float xOffset = 0.0f;
+        float yOffset = 0.0f;
+
+        //Light Green Coordinates
+        if(randomGenerator.Next(0, 2) != 0)
+        {
+            xOffset = 3.0f * randomGenerator.Next(-10, 11);
+            yOffset = 3.0f * randomGenerator.Next(-10, 11);
+        }
+        //Dark Green Coordinates
+        else
+        {
+            xOffset = 1.5f * (2*randomGenerator.Next(-11, 10)+1);
+            yOffset = 1.5f * (2*randomGenerator.Next(-11, 10)+1);
+        }
+
+        player.transform.position += new Vector3(xOffset, yOffset, 0);
+
+        return player;
+    }
+    
+    public override void OnEnable()
+    {
+        base.OnEnable();
+
+        PhotonNetwork.AddCallbackTarget(this);
+    }
+
+    public override void OnDisable()
+    {
+        base.OnDisable();
+
+        PhotonNetwork.RemoveCallbackTarget(this);
     }
 
     private void Start()
     {
-        Vector3 spawnPoint = new Vector3(0, 0, 0);
-        GameObject player = MasterManager.NetworkInstantiate(_playerPrefab, spawnPoint, Quaternion.identity, false);
+        GameObject player = SpawnPlayer();
 
         if(!player.GetPhotonView().IsMine) return;
 
+        GameCanvas.FirstInitialize(this);
+
         PlayerManager = player.GetComponent<PlayerManager>();
+        if(PlayerManager != null) PlayerManager.FirstInitialize(this);
 
-        if(PlayerManager != null)
-        {
-            PlayerManager.FirstInitialize(this);
-            _gameCanvas.FirstInitialize(this);
-        }
+        PlayerMovement = player.GetComponent<PlayerMovement>();
+        if(PlayerMovement != null) PlayerMovement.FirstInitialize(this);
 
-        if(PhotonNetwork.IsMasterClient)
-        {
-            player.GetPhotonView().RPC("RPC_SyncTicks", RpcTarget.Others);
-        }
 
         GameObject camera = GameObject.FindWithTag("MainCamera");
 
@@ -62,57 +102,239 @@ public class GameManagement : MonoBehaviourPun
             }
         }
 
-        GameObject hearts = GameObject.FindWithTag("HealthItem");
+        if(PhotonNetwork.IsMasterClient)
+        {
+            _roomCreationTime = MasterManager.GetCurrentTimestamp();
 
-        if(hearts != null)
-        {   
-            player.GetPhotonView().RPC("RPC_RequestCurrentHeartsList", RpcTarget.MasterClient);
+            PlayerStatusInfo playerStatusInfo = new PlayerStatusInfo(
+                MasterManager.GameSettings.InitialHealth, 
+                MasterManager.GameSettings.InitialExp,
+                PhotonNetwork.LocalPlayer.NickName, 
+                PhotonNetwork.LocalPlayer.UserId);
+
+            LeaderboardList.Add(playerStatusInfo);
+
+            _initializedByMasterClient = true;
+        }
+        else
+        {
+            RequestInitialization(PhotonNetwork.LocalPlayer.UserId, PhotonNetwork.LocalPlayer.NickName);
         }
 
-        _initialized = true;
+        GameCanvas.LeaderboardPanel.RenderLeaderboard(LeaderboardList);
+    }
+
+    private int ToModuledTick(int tick)
+    {
+        return tick%MasterManager.GameSettings.TickCountReset+1;
+    }
+
+    private int TicksToReset(int moduledTick)
+    {
+        if(moduledTick > MasterManager.GameSettings.TickCountReset)
+        {
+            moduledTick = ToModuledTick(moduledTick);
+        }
+
+        return moduledTick-MasterManager.GameSettings.TickCountReset;
+    }
+
+    private void UpdateCurrentPlayerStats()
+    {
+        //If is MasterClient Update his own values
+        if(PhotonNetwork.IsMasterClient)
+        {
+            LeaderboardList
+            .SingleOrDefault(x => x.PlayerID == PhotonNetwork.LocalPlayer.UserId)
+            .UpdateStats(PlayerManager.Health, PlayerManager.Exp);
+        }
+        //Send his values to master client and requests him to update
+        else
+        {
+            UpdateMasterClient(PhotonNetwork.LocalPlayer.UserId, PlayerManager.Health, PlayerManager.Exp);
+        }
+    }
+
+    private void UpdateLeaderboardValues()
+    {
+        if(!PhotonNetwork.IsMasterClient) return;
+
+        byte[] byteArrayPlayerInfoList = MasterManager.ToByteArray<List<PlayerStatusInfo>>(LeaderboardList);
+        RenderLeaderboard(byteArrayPlayerInfoList);
+        GameCanvas.LeaderboardPanel.RenderLeaderboard(LeaderboardList);
     }
 
     void Update()
     {
-        if(GetTimestamp(DateTime.Now) - flagTimeStamp >= 10000)
-        {
-            _ticks += 1;
-            flagTimeStamp = GetTimestamp(DateTime.Now);
+        if(!_initializedByMasterClient) return;
+
+        int currentTicks = (int) (MasterManager.GetCurrentTimestamp() - _roomCreationTime)/MasterManager.GameSettings.EachTickTime;
+
+        //Verify if another tick has passed
+        if(currentTicks > _ticks)
+        { 
+            //Calculate moduled tick
+            int moduledTicks = ToModuledTick(currentTicks);
+            GameCanvas.SetTicksText(moduledTicks.ToString());
+            
+            //Calculate Ticks to Reset
+            int ticksToReset = TicksToReset(moduledTicks);
+
+            switch(ticksToReset)
+            {
+                //Ticks were reset: Update leaderboard
+                case 0:
+                    UpdateLeaderboardValues();
+                    break;
+                //Only one tick left to reset: Update Current Player Stats   
+                case 1:
+                    UpdateCurrentPlayerStats();
+                    break;
+                default:
+                    break;
+            }
         }
-        _gameCanvas.SetTicksText(_ticks.ToString());
     }
 
-    [PunRPC]
-    private void RPC_RequestCurrentHeartsList()
+    private void RequestInitialization(string playerID, string nickname)
     {
-        MemoryStream stream = new MemoryStream();
-        BinaryFormatter formatter = new BinaryFormatter();
+        object[] content = new object[]{
+            playerID,
+            nickname
+        };
 
-        formatter.Serialize(stream, _heartList);
-        byte[] byteArrayHeartList = stream.GetBuffer();
+        RaiseEventOptions raiseEventOptions = new RaiseEventOptions{
+            Receivers = ReceiverGroup.MasterClient
+        };
 
-        base.photonView.RPC("RPC_SetCurrentHeartsList", RpcTarget.Others, byteArrayHeartList);
-    } 
-
-    [PunRPC]
-    private void RPC_SetCurrentHeartsList(byte[] byteArrayHeartList)
-    {
-        if(_initialized) return;
-
-        MemoryStream stream = new MemoryStream(byteArrayHeartList);
-        BinaryFormatter formatter = new BinaryFormatter();
-
-        object heartInfoObject = formatter.Deserialize(stream);
-        List<HeartInfo> heartInfoList = heartInfoObject as List<HeartInfo>;
-
-        _heartList.AddRange(heartInfoList);
+        PhotonNetwork.RaiseEvent(RequestInitializationEvent, content, raiseEventOptions, SendOptions.SendReliable);
     }
 
-    [PunRPC]
-    private void RPC_SyncTicks(long timestamp)
+    private void Initialize(string playerID, long roomCreationTime, byte[] byteArrayHeartList, byte[] leaderboardList)
     {
-        if(_initialized) return;
+        object[] content = new object[]{
+            playerID,
+            roomCreationTime,
+            byteArrayHeartList,
+            leaderboardList
+        };
 
-        flagTimeStamp = timestamp;
+        RaiseEventOptions raiseEventOptions = new RaiseEventOptions{
+            Receivers = ReceiverGroup.Others
+        };
+
+        PhotonNetwork.RaiseEvent(InitializeEvent, content, raiseEventOptions, SendOptions.SendReliable);
+    }
+
+    private void RenderLeaderboard(byte[] byteArrayPlayerInfoList)
+    {
+        object[] content = new object[]{
+            byteArrayPlayerInfoList
+        };
+
+        RaiseEventOptions raiseEventOptions = new RaiseEventOptions{
+            Receivers = ReceiverGroup.Others
+        };
+
+        PhotonNetwork.RaiseEvent(RenderLeaderboardEvent, content, raiseEventOptions, SendOptions.SendReliable);
+    }
+
+    private void UpdateMasterClient(string playerID, int health, int exp)
+    {
+        object[] content = new object[]{
+            playerID,
+            health,
+            exp
+        };
+
+        RaiseEventOptions raiseEventOptions = new RaiseEventOptions{
+            Receivers = ReceiverGroup.MasterClient
+        };
+
+        PhotonNetwork.RaiseEvent(UpdateMasterClientEvent, content, raiseEventOptions, SendOptions.SendReliable);
+    }
+
+    public void OnEvent(EventData photonEvent)
+    {
+        byte eventCode = photonEvent.Code;
+        object[] data;
+
+        switch(eventCode)
+        {
+            case RequestInitializationEvent:
+                data = (object[])photonEvent.CustomData;
+                OnRequestInitialization(data);
+                break;
+            
+            case InitializeEvent:
+                data = (object[])photonEvent.CustomData;
+                OnInitialize(data);
+                break;
+            
+            case UpdateMasterClientEvent:
+                data = (object[])photonEvent.CustomData;
+                OnUpdateMasterClient(data);
+                break;
+
+            case RenderLeaderboardEvent:
+                data = (object[])photonEvent.CustomData;
+                OnRenderLeaderboard(data);
+                break;
+        }
+    }
+
+    private void OnRequestInitialization(object[] data)
+    {
+        string playerID = (string) data[0];
+        string nickname = (string) data[1];
+
+        PlayerStatusInfo playerStatusInfo = new PlayerStatusInfo(
+            MasterManager.GameSettings.InitialHealth, 
+            MasterManager.GameSettings.InitialExp,
+            nickname, 
+            playerID);
+
+        LeaderboardList.Add(playerStatusInfo);
+
+        byte[] byteArrayHeartList = MasterManager.ToByteArray<List<HeartInfo>>(PlayerManager.HeartList);
+        byte[] byteArrayLeaderboardList = MasterManager.ToByteArray<List<PlayerStatusInfo>>(LeaderboardList);
+
+        Initialize(playerID, _roomCreationTime, byteArrayHeartList, byteArrayLeaderboardList);
+    }
+
+    private void OnInitialize(object[] data)
+    {
+        string playerID = (string) data[0];
+        if(playerID != PhotonNetwork.LocalPlayer.UserId) return;
+        
+        _roomCreationTime = (long) data[1];
+        byte[] byteArrayHeartList = (byte[]) data[2];
+
+        List<HeartInfo> heartInfoList = MasterManager.FromByteArray<List<HeartInfo>>(byteArrayHeartList);
+        PlayerManager.HeartList = heartInfoList;
+
+        byte[] byteArrayLeaderboardList = (byte[]) data[3];
+        List<PlayerStatusInfo> leaderboardList = MasterManager.FromByteArray<List<PlayerStatusInfo>>(byteArrayLeaderboardList);
+        GameCanvas.LeaderboardPanel.RenderLeaderboard(leaderboardList);
+
+        _initializedByMasterClient = true;
+    }
+    
+    private void OnRenderLeaderboard(object[] data)
+    {
+        byte[] byteArrayPlayerInfo = (byte[]) data[0];
+        List<PlayerStatusInfo> playerInfoList = MasterManager.FromByteArray<List<PlayerStatusInfo>>(byteArrayPlayerInfo);
+        GameCanvas.LeaderboardPanel.RenderLeaderboard(playerInfoList);
+    }
+    
+    private void OnUpdateMasterClient(object[] data)
+    {
+        string playerID = (string) data[0]; 
+        int health = (int) data[1];
+        int exp = (int) data[2];
+
+        LeaderboardList
+        .SingleOrDefault(x => x.PlayerID == playerID)
+        .UpdateStats(health, exp);
     }
 }

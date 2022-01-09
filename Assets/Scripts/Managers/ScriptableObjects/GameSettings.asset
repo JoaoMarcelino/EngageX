@@ -12,5 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1b6a88a26a185546a736440be3f66de, type: 3}
   m_Name: GameSettings
   m_EditorClassIdentifier: 
-  _gameVersion: 0.0.0
+  _gameVersion: 0.0.4
   _nickName: Guest
+  _eachTickTime: 1
+  _tickCountReset: 5
+  _initialHealth: 10
+  _initialExp: 0
+  _leaderboardSize: 5

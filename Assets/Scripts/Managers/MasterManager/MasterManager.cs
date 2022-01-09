@@ -1,4 +1,10 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -57,5 +63,43 @@ public class MasterManager: SingletonScriptableObject<MasterManager>
             }
         }
         #endif
-    } 
+    }
+
+    public static long GetTimestamp(DateTime value)
+    {
+        return Int64.Parse(value.ToString("yyyyMMddHHmmssffff"));
+    }
+
+    public static long GetCurrentTimestamp()
+    {
+        return GetTimestamp(DateTime.UtcNow);
+    }
+
+    public static byte[] ToByteArray<T>(T obj)
+    {
+        if(obj == null)
+            return null;
+        
+        BinaryFormatter bf = new BinaryFormatter();
+        
+        using(MemoryStream ms = new MemoryStream())
+        {
+            bf.Serialize(ms, obj);
+            return ms.ToArray();
+        }
+    }
+
+    public static T FromByteArray<T>(byte[] data)
+    {
+        if(data == null)
+            return default(T);
+        
+        BinaryFormatter bf = new BinaryFormatter();
+        
+        using(MemoryStream ms = new MemoryStream(data))
+        {
+            object obj = bf.Deserialize(ms);
+            return (T)obj;
+        }
+    }
 }

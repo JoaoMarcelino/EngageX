@@ -15,50 +15,49 @@ using Photon.Pun;
 public class PlayerManager : MonoBehaviourPun
 {
     [SerializeField] private GameObject _healthPrefab;
-    private GameObject FoW;
-    public GameManagement GameManagement {get; private set;}
+    [SerializeField] private List<HeartInfo> _heartList = new List<HeartInfo>();
+    [SerializeField] private List<GameObject> _currentCollisions = new List<GameObject>();
+    
     private Pair _health = new Pair();
-    public int Health {get{return _health.GetNew();}}
     private Pair _exp = new Pair();
-    public int Exp {get{return _exp.GetNew();}}
-    private Vector2 movementInput;
-    private Vector3 direction;
-    private bool _inEncounter;
+    
+    private int scaleMap = 3;
+    private float halfMovement;
+    private float fullMovement;
 
-    public double percentageSow = 0.33;
-    public double percentageUp = 0.5;
-
-    //Cursed
+    private double percentageSow = 0.33;
+    private double percentageUp = 0.5;
+    
     private float tilemapOffsetX = 0.25f;
     private float tilemapOffsetY = 2.75f;
 
-    private int scaleMap = 3;
+    public GameManagement GameManagement {get; private set;}
+    public List<HeartInfo> HeartList {get{ return _heartList;} set{_heartList = value;}}
+    
+    public int Health {get {return _health.GetNew();}}
 
-    private float halfMovement;
-    private float fullMovement;
-    private float minVal;
-
-    private bool hasMoved;
-    private long flagTimeStamp = GameManagement.GetTimestamp(DateTime.Now);
-
-    [SerializeField] private List<GameObject> _currentCollisions = new List<GameObject>();
+    public int Exp {get{return _exp.GetNew();}}
 
     private void Start()
     {
-        this.halfMovement = 0.5f * scaleMap;
-        this.fullMovement = 1f * scaleMap;
+        if(!base.photonView.IsMine) return;
+        
+        halfMovement = 0.5f * scaleMap;
+        fullMovement = 1f * scaleMap;
 
-        _health.Add(10);
+        _health.Add(MasterManager.GameSettings.InitialHealth);
+        _exp.Add(MasterManager.GameSettings.InitialExp);
     }
+
     public void FirstInitialize(GameManagement gameManagement)
     {
         GameManagement = gameManagement;
     }
+
     void Update()
     {   
-        if(!base.photonView.IsMine || _inEncounter) return;
+        if(!base.photonView.IsMine) return;
         
-        ProcessMovement();
         UpdateStats();
     }
 
@@ -75,116 +74,6 @@ public class PlayerManager : MonoBehaviourPun
             _exp.Update();
             GameManagement.GameCanvas.PlayerStats.SetExp(_exp.GetNew());
         }
-    }
-
-    public void ProcessMovement()
-    {
-        float moveX = GameManagement.GameCanvas.NavigationControls.FixedJoystick.Horizontal;
-        float moveY = GameManagement.GameCanvas.NavigationControls.FixedJoystick.Vertical;
-
-        minVal = 0.4f;
-
-        if(moveX == 0)
-        {
-            hasMoved = false;
-        }
-        else if(moveX > minVal && !hasMoved)
-        {
-            hasMoved = true;
-            flagTimeStamp = GameManagement.GetTimestamp(DateTime.Now);
-
-            GetMovementDirection(moveX, moveY);
-        }
-        else if(moveX < -minVal && !hasMoved)
-        {
-            hasMoved = true;
-            flagTimeStamp = GameManagement.GetTimestamp(DateTime.Now);
-
-            GetMovementDirection(moveX, moveY);
-        }
-
-        if(GameManagement.GetTimestamp(DateTime.Now) - flagTimeStamp >= 5000){
-            hasMoved = false;
-        }
-    }
-
-    public void GetMovementDirection(float moveX, float moveY)
-    {
-        float minVal = 0.4f;
-        if (moveX < -minVal)
-        {
-            if (moveY > minVal)
-            {
-                direction = new Vector3(-halfMovement, halfMovement);
-            }
-            else if (moveY < -minVal)
-            {
-                direction = new Vector3(-halfMovement, -halfMovement);
-            }
-            else
-            {
-                direction = new Vector3(-fullMovement, 0);
-            }
-            transform.position += direction;
-        }
-        else if (moveX> minVal)
-        {
-            if (moveY > minVal)
-            {
-                direction = new Vector3(halfMovement, halfMovement);
-            }
-            else if (moveY < -minVal)
-            {
-                direction = new Vector3(halfMovement, -halfMovement);
-            }
-            else
-            {
-                direction = new Vector3(fullMovement, 0);
-            }
-
-            transform.position += direction;
-        }
-        
-        checkBorders(direction);
-    }
-
-    private void checkBorders(Vector3 direction)
-    {
-        float maxValue = 10 * scaleMap;
-        int offset = scaleMap;
-        float posY = transform.position.y;
-        float posX= transform.position.x;
-
-        //X LIMITS FOR NORMAL VALUES
-        if (posX < -maxValue && posX == -maxValue - fullMovement){
-            transform.position = new Vector3(maxValue, posY);
-        }
-        else if (posX > maxValue && posX == maxValue + fullMovement){
-            transform.position = new Vector3(-maxValue , posY);
-        }
-        
-        //X LIMITS FOR .5 VALUES
-        else if(posX < -maxValue - fullMovement){
-            transform.position = new Vector3(maxValue - halfMovement, posY);
-        }
-        else if(posX > maxValue ){
-            transform.position = new Vector3(-maxValue - halfMovement, posY);
-        }
-        //Y LIMITS FOR .5 VALUES
-        else if (posY < -maxValue - halfMovement){
-            transform.position = new Vector3(posX, maxValue);
-        }
-        else if (posY > maxValue){
-            transform.position = new Vector3(posX, - maxValue - halfMovement);
-        }
-        String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, transform.position, transform.position);
-    }
-
-    public void OnMove(InputValue value)
-    {
-        if(!base.photonView.IsMine) return;
-
-        movementInput = value.Get<Vector2>();
     }
 
     public void OnClickSow()
@@ -221,13 +110,7 @@ public class PlayerManager : MonoBehaviourPun
 
         if(heartInfoList.Count != 0)
         {
-            MemoryStream stream = new MemoryStream();
-            BinaryFormatter formatter = new BinaryFormatter();
-
-            formatter.Serialize(stream, heartInfoList);
-
-            byte[] byteArrayHeartList = stream.GetBuffer();
-            
+            byte[] byteArrayHeartList = MasterManager.ToByteArray<List<HeartInfo>>(heartInfoList);
             base.photonView.RPC("RPC_HeartInstantiate", RpcTarget.All, byteArrayHeartList, healthGiven);
         }
     }
@@ -244,8 +127,11 @@ public class PlayerManager : MonoBehaviourPun
         if(heart != null)
         {
             int playerId = base.photonView.ViewID;
-            int heartId = heart.GetComponent<PhotonView>().ViewID;
-            base.photonView.RPC("RPC_HeartDestroy", RpcTarget.All, posX, posY, playerId);
+            
+            if(PhotonNetwork.IsMasterClient) 
+                HeartDestroy(posX, posY, playerId);
+            else
+                base.photonView.RPC("RPC_HeartDestroy", RpcTarget.MasterClient, posX, posY, playerId);
         }
     }
 
@@ -255,6 +141,8 @@ public class PlayerManager : MonoBehaviourPun
 
         int healthToLevel = (int) Math.Ceiling(_health.GetNew() * percentageUp);
 
+        Debug.Log("Health to level: " + healthToLevel);
+
         _health.Add(-healthToLevel);
         _exp.Add(healthToLevel);
     }
@@ -263,17 +151,11 @@ public class PlayerManager : MonoBehaviourPun
     {  
         String name =  "Heart_" + posX  + "_" + posY;
 
-        if (GameObject.Find(name)){
-            return;
-        }
-
         Vector2 position = new Vector2(posX, posY);
 
         GameObject heart = MasterManager.NetworkInstantiate(_healthPrefab, position, Quaternion.identity, true);
-
         heart.name = name;
-
-        heart.GetComponent<HeartManager>().Health = health;
+        heart.GetComponent<HeartManager>().FirstInitialize(health);
     }
 
     private float GetPlayerPositionX()
@@ -289,11 +171,7 @@ public class PlayerManager : MonoBehaviourPun
     [PunRPC]
     private void RPC_HeartInstantiate(byte[] byteArrayHeartList, int health)
     {
-        MemoryStream stream = new MemoryStream(byteArrayHeartList);
-        BinaryFormatter formatter = new BinaryFormatter();
-
-        object heartInfoObject = formatter.Deserialize(stream);
-        List<HeartInfo> heartInfoList = heartInfoObject as List<HeartInfo>;
+        List<HeartInfo> heartInfoList = MasterManager.FromByteArray<List<HeartInfo>>(byteArrayHeartList);
 
         heartInfoList = FilterDuplicateHearts(heartInfoList);
 
@@ -304,46 +182,42 @@ public class PlayerManager : MonoBehaviourPun
             });
         }
 
-        GameManagement.HeartList.AddRange(heartInfoList);
+        HeartList.AddRange(heartInfoList);
+    }
+
+    private void HeartDestroy(float x, float y, int playerId)
+    {
+        String name =  "Heart_" + x  + "_" + y;
+        GameObject heart = GameObject.Find(name);
+        int health = heart.GetComponent<HeartManager>().Health;
+        _health.Add(health);
+        PhotonNetwork.Destroy(heart);
+        HeartList.Remove(HeartList.SingleOrDefault(r => r.X == x && r.Y == y));
+        Debug.Log("Adding " + health + " to player" + playerId);
+        base.photonView.RPC("RPC_UpdatePlayers", RpcTarget.Others, x, y, playerId, health);
     }
 
     [PunRPC]
     private void RPC_HeartDestroy(float x, float y, int playerId)
     {
-        if(PhotonNetwork.IsMasterClient)
+        HeartDestroy(x, y, playerId);
+    }
+
+    [PunRPC]
+    private void RPC_UpdatePlayers(float x, float y, int playerID, int health)
+    {
+        if(base.photonView.ViewID == playerID)
         {
-            String name =  "Heart_" + x  + "_" + y;
-
-            GameObject heart = GameObject.Find(name);
-
-            if (!heart)
-            {
-                Debug.Log("RPC method called for non existing heart!");
-                return;
-            }
-
-            int health = heart.GetComponent<HeartManager>().Health;
-            Debug.Log(health);
-            GameObject player = PhotonView.Find(playerId).gameObject;
-            player.GetComponent<PlayerManager>().AddHealth(health);
-            PhotonNetwork.Destroy(heart);
+            _health.Add(health);
         }
 
-        HeartInfo coordinate = GameManagement.HeartList.SingleOrDefault(r => r.X == x && r.Y == y);
-        
-        if(coordinate == null)
-        {
-            Debug.Log("RPC method called for non existing heart!");
-            return;
-        }
-
-        GameManagement.HeartList.Remove(coordinate);
+        HeartList.Remove(HeartList.SingleOrDefault(r => r.X == x && r.Y == y));
     }
 
     private List<HeartInfo> FilterDuplicateHearts(List<HeartInfo> heartInfoList)
     {
         return heartInfoList.Where(
-            localHeartInfo => GameManagement.HeartList.All(
+            localHeartInfo => HeartList.All(
                 globalHeartInfo =>
                     localHeartInfo.X != globalHeartInfo.X || 
                     localHeartInfo.Y != globalHeartInfo.Y)
@@ -361,15 +235,17 @@ public class PlayerManager : MonoBehaviourPun
 
         _currentCollisions.Add(col.gameObject);
 
+        if(col.gameObject.tag == "HealthItem")
+            Debug.Log("Heart health: " + col.gameObject.GetComponent<HeartManager>().Health);
+
         int players = _currentCollisions.Where(x => x.tag == "Player").Count();
 
         if(players == 1)
         {
-            _inEncounter = true;
             GameManagement.GameCanvas.EnableEncounter(); 
         }
         else if(players > 1)
-            transform.position -= direction;
+            transform.position -= GameManagement.PlayerMovement.Direction;
     }
  
     void OnTriggerExit2D(Collider2D col)

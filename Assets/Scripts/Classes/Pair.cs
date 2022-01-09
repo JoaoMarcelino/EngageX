@@ -1,3 +1,4 @@
+[System.Serializable]
 public class Pair
 {
     private int _new;

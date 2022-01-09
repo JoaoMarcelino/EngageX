@@ -17,6 +17,9 @@ public class GameCanvas : MonoBehaviour
     [SerializeField] private EncounterControls _encounterControls;
     public EncounterControls EncounterControls { get { return _encounterControls;}}
 
+    [SerializeField] private LeaderboardPanel _leaderboardPanel;
+    public LeaderboardPanel LeaderboardPanel { get { return _leaderboardPanel;}}
+
     [SerializeField] private Text _ticksText;
 
     public void FirstInitialize(GameManagement gameManagement)
@@ -25,6 +28,7 @@ public class GameCanvas : MonoBehaviour
 
         _encounterControls.FirstInitialize(this);
         _navigationControls.FirstInitialize(this);
+        _leaderboardPanel.FirstInitialize(this);
     }
 
     public void EnableEncounter()
