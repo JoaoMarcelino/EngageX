@@ -34,7 +34,7 @@ public class PlayerMovement : MonoBehaviourPun
 
     void Update()
     {
-        if(!base.photonView.IsMine) return;
+        if(!base.photonView.IsMine || GameManagement.PlayerManager.InEncounter) return;
 
         ProcessMovement();
     }
@@ -107,10 +107,10 @@ public class PlayerMovement : MonoBehaviourPun
             transform.position += direction;
         }
         
-        checkBorders(direction);
+        CheckBorders(direction);
     }
 
-    private void checkBorders(Vector3 direction)
+    private void CheckBorders(Vector3 direction)
     {
         float maxValue = 10 * scaleMap;
         int offset = scaleMap;
@@ -146,6 +146,39 @@ public class PlayerMovement : MonoBehaviourPun
             transform.position = new Vector3(posX, - maxValue - halfMovement);
         }
         //String strings = String.Format("Log: {0}  {1} {2}", System.DateTime.Now, transform.position, transform.position);
+    }
+
+    public void GoToRandomPosition()
+    {
+        System.Random rand = new System.Random();
+
+        int option = rand.Next(0, 6);
+
+        switch(option)
+        {
+            case 0:
+                direction = new Vector3(-halfMovement, halfMovement);
+                break;
+            case 1:
+                direction = new Vector3(-halfMovement, -halfMovement);
+                break;
+            case 2:
+                direction = new Vector3(-fullMovement, 0);
+                break;
+            case 3:
+                direction = new Vector3(halfMovement, halfMovement);
+                break;
+            case 4:
+                direction = new Vector3(halfMovement, -halfMovement);
+                break;
+            case 5:
+                direction = new Vector3(fullMovement, 0);
+                break;
+        }
+        
+        transform.position += direction;
+
+        CheckBorders(direction);
     }
 
     public void OnMove(InputValue value)

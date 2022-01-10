@@ -12,6 +12,6 @@ public class FleeButton : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData pointerEventData)
     {
-
+        _gameCanvas.GameManagement.PlayerManager.OnClickFlee();
     }
 }

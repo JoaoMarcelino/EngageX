@@ -12,6 +12,6 @@ public class ShareButton : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData pointerEventData)
     {
-
+        _gameCanvas.GameManagement.PlayerManager.OnClickShare();
     }
 }

@@ -12,6 +12,6 @@ public class StealButton : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData pointerEventData)
     {
-
+        _gameCanvas.GameManagement.PlayerManager.OnClickSteal();
     }
 }

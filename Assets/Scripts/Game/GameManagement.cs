@@ -19,19 +19,20 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
     [SerializeField] private GameObject _playerPrefab;
     [SerializeField] private int _ticks = 0;
     [SerializeField] private List<PlayerStatusInfo> _leaderboardList = new List<PlayerStatusInfo>();
+    [SerializeField] private Dictionary<int, Player> _playersList = new Dictionary<int, Player>();
     [SerializeField] private long _roomCreationTime;
 
     private bool _initializedByMasterClient = false;
 
     public List<PlayerStatusInfo> LeaderboardList {get{return _leaderboardList;}}
+    public Dictionary<int, Player> PlayersList {get{return _playersList;}}
     public GameCanvas GameCanvas {get{return _gameCanvas;}}
     public PlayerManager PlayerManager{get; private set;}
     public PlayerMovement PlayerMovement{get; private set;}
     public long RoomCreationTime {get{return _roomCreationTime;}}
-
     private const byte RequestInitializationEvent = 1;
     private const byte InitializeEvent = 2;
-    private const byte UpdateMasterClientEvent = 3;
+    private const byte UpdatePlayerInfoOnMasterClientEvent = 3;
     private const byte RenderLeaderboardEvent = 4;
 
     private GameObject SpawnPlayer()
@@ -110,15 +111,16 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
                 MasterManager.GameSettings.InitialHealth, 
                 MasterManager.GameSettings.InitialExp,
                 PhotonNetwork.LocalPlayer.NickName, 
-                PhotonNetwork.LocalPlayer.UserId);
+                PhotonNetwork.LocalPlayer.ActorNumber);
 
             LeaderboardList.Add(playerStatusInfo);
+            PlayersList.Add(player.GetPhotonView().ViewID, PhotonNetwork.LocalPlayer);
 
             _initializedByMasterClient = true;
         }
         else
         {
-            RequestInitialization(PhotonNetwork.LocalPlayer.UserId, PhotonNetwork.LocalPlayer.NickName);
+            RequestInitialization(PhotonNetwork.LocalPlayer, player.GetPhotonView().ViewID);
         }
 
         GameCanvas.LeaderboardPanel.RenderLeaderboard(LeaderboardList);
@@ -145,13 +147,13 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         if(PhotonNetwork.IsMasterClient)
         {
             LeaderboardList
-            .SingleOrDefault(x => x.PlayerID == PhotonNetwork.LocalPlayer.UserId)
+            .SingleOrDefault(x => x.PlayerID == PhotonNetwork.LocalPlayer.ActorNumber)
             .UpdateStats(PlayerManager.Health, PlayerManager.Exp);
         }
         //Send his values to master client and requests him to update
         else
         {
-            UpdateMasterClient(PhotonNetwork.LocalPlayer.UserId, PlayerManager.Health, PlayerManager.Exp);
+            UpdatePlayerInfoOnMasterClient(PhotonNetwork.LocalPlayer.ActorNumber, PlayerManager.Health, PlayerManager.Exp);
         }
     }
 
@@ -196,11 +198,11 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         }
     }
 
-    private void RequestInitialization(string playerID, string nickname)
+    private void RequestInitialization(Player player, int viewID)
     {
         object[] content = new object[]{
-            playerID,
-            nickname
+            player,
+            viewID
         };
 
         RaiseEventOptions raiseEventOptions = new RaiseEventOptions{
@@ -210,13 +212,14 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         PhotonNetwork.RaiseEvent(RequestInitializationEvent, content, raiseEventOptions, SendOptions.SendReliable);
     }
 
-    private void Initialize(string playerID, long roomCreationTime, byte[] byteArrayHeartList, byte[] leaderboardList)
+    private void Initialize(int playerID, long roomCreationTime, byte[] byteArrayHeartList, byte[] byteArrayLeaderboardList, byte[] byteArrayPlayerList)
     {
         object[] content = new object[]{
             playerID,
             roomCreationTime,
             byteArrayHeartList,
-            leaderboardList
+            byteArrayLeaderboardList,
+            byteArrayPlayerList
         };
 
         RaiseEventOptions raiseEventOptions = new RaiseEventOptions{
@@ -239,7 +242,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         PhotonNetwork.RaiseEvent(RenderLeaderboardEvent, content, raiseEventOptions, SendOptions.SendReliable);
     }
 
-    private void UpdateMasterClient(string playerID, int health, int exp)
+    private void UpdatePlayerInfoOnMasterClient(int playerID, int health, int exp)
     {
         object[] content = new object[]{
             playerID,
@@ -251,7 +254,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
             Receivers = ReceiverGroup.MasterClient
         };
 
-        PhotonNetwork.RaiseEvent(UpdateMasterClientEvent, content, raiseEventOptions, SendOptions.SendReliable);
+        PhotonNetwork.RaiseEvent(UpdatePlayerInfoOnMasterClientEvent, content, raiseEventOptions, SendOptions.SendReliable);
     }
 
     public void OnEvent(EventData photonEvent)
@@ -271,9 +274,9 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
                 OnInitialize(data);
                 break;
             
-            case UpdateMasterClientEvent:
+            case UpdatePlayerInfoOnMasterClientEvent:
                 data = (object[])photonEvent.CustomData;
-                OnUpdateMasterClient(data);
+                OnUpdatePlayerInfoOnMasterClient(data);
                 break;
 
             case RenderLeaderboardEvent:
@@ -285,8 +288,10 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
 
     private void OnRequestInitialization(object[] data)
     {
-        string playerID = (string) data[0];
-        string nickname = (string) data[1];
+        Player player = (Player) data[0];
+        int viewID = (int) data[1];
+        int playerID = player.ActorNumber;
+        string nickname = player.NickName;
 
         PlayerStatusInfo playerStatusInfo = new PlayerStatusInfo(
             MasterManager.GameSettings.InitialHealth, 
@@ -295,17 +300,27 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
             playerID);
 
         LeaderboardList.Add(playerStatusInfo);
+        PlayersList.Add(viewID, player);
 
         byte[] byteArrayHeartList = MasterManager.ToByteArray<List<HeartInfo>>(PlayerManager.HeartList);
         byte[] byteArrayLeaderboardList = MasterManager.ToByteArray<List<PlayerStatusInfo>>(LeaderboardList);
 
-        Initialize(playerID, _roomCreationTime, byteArrayHeartList, byteArrayLeaderboardList);
+        Dictionary<int, int> playersList = new Dictionary<int, int>();
+
+        foreach(KeyValuePair<int, Player> playerInfo in PlayersList)
+        {
+            playersList.Add(playerInfo.Key, playerInfo.Value.ActorNumber);
+        }
+
+        byte[] byteArrayPlayerList = MasterManager.ToByteArray<Dictionary<int, int>>(playersList);
+
+        Initialize(playerID, _roomCreationTime, byteArrayHeartList, byteArrayLeaderboardList, byteArrayPlayerList);
     }
 
     private void OnInitialize(object[] data)
     {
-        string playerID = (string) data[0];
-        if(playerID != PhotonNetwork.LocalPlayer.UserId) return;
+        int playerID = (int) data[0];
+        if(playerID != PhotonNetwork.LocalPlayer.ActorNumber) return;
         
         _roomCreationTime = (long) data[1];
         byte[] byteArrayHeartList = (byte[]) data[2];
@@ -317,6 +332,20 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         List<PlayerStatusInfo> leaderboardList = MasterManager.FromByteArray<List<PlayerStatusInfo>>(byteArrayLeaderboardList);
         GameCanvas.LeaderboardPanel.RenderLeaderboard(leaderboardList);
 
+        byte[] byteArrayPlayerList = (byte[]) data[4];
+        Dictionary<int, int> playerList = MasterManager.FromByteArray<Dictionary<int, int>>(byteArrayPlayerList);
+
+        foreach(KeyValuePair<int, Player> playerInfo in PhotonNetwork.CurrentRoom.Players)
+        {
+            foreach(KeyValuePair<int, int> player in playerList)
+            {
+                if(playerInfo.Value.ActorNumber == player.Value)
+                {
+                    PlayersList.Add(player.Key, playerInfo.Value);
+                }
+            }
+        }
+
         _initializedByMasterClient = true;
     }
     
@@ -327,9 +356,9 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         GameCanvas.LeaderboardPanel.RenderLeaderboard(playerInfoList);
     }
     
-    private void OnUpdateMasterClient(object[] data)
+    private void OnUpdatePlayerInfoOnMasterClient(object[] data)
     {
-        string playerID = (string) data[0]; 
+        int playerID = (int) data[0]; 
         int health = (int) data[1];
         int exp = (int) data[2];
 
