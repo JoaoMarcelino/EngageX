@@ -22,6 +22,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
     [SerializeField] private Dictionary<int, Player> _playersList = new Dictionary<int, Player>();
     [SerializeField] private long _roomCreationTime;
 
+    private List<Player> newPlayers = new List<Player>();
     private bool _initializedByMasterClient = false;
 
     public List<PlayerStatusInfo> LeaderboardList {get{return _leaderboardList;}}
@@ -30,10 +31,12 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
     public PlayerManager PlayerManager{get; private set;}
     public PlayerMovement PlayerMovement{get; private set;}
     public long RoomCreationTime {get{return _roomCreationTime;}}
+
     private const byte RequestInitializationEvent = 1;
     private const byte InitializeEvent = 2;
     private const byte UpdatePlayerInfoOnMasterClientEvent = 3;
     private const byte RenderLeaderboardEvent = 4;
+    private const byte UpdateNewPlayerViewIdEvent = 5;
 
     private GameObject SpawnPlayer()
     {
@@ -124,6 +127,11 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         }
 
         GameCanvas.LeaderboardPanel.RenderLeaderboard(LeaderboardList);
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer) 
+    {
+        newPlayers.Add(newPlayer);
     }
 
     private int ToModuledTick(int tick)
@@ -257,6 +265,20 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         PhotonNetwork.RaiseEvent(UpdatePlayerInfoOnMasterClientEvent, content, raiseEventOptions, SendOptions.SendReliable);
     }
 
+    private void UpdateNewPlayerViewId(int playerID, int viewID)
+    {
+        object[] content = new object[]{
+            playerID,
+            viewID
+        };
+
+        RaiseEventOptions raiseEventOptions = new RaiseEventOptions{
+            Receivers = ReceiverGroup.Others
+        };
+
+        PhotonNetwork.RaiseEvent(UpdatePlayerInfoOnMasterClientEvent, content, raiseEventOptions, SendOptions.SendReliable);
+    }
+
     public void OnEvent(EventData photonEvent)
     {
         byte eventCode = photonEvent.Code;
@@ -282,6 +304,10 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
             case RenderLeaderboardEvent:
                 data = (object[])photonEvent.CustomData;
                 OnRenderLeaderboard(data);
+                break;
+            case UpdateNewPlayerViewIdEvent:
+                data = (object[])photonEvent.CustomData;
+                OnUpdateNewPlayerViewId(data);
                 break;
         }
     }
@@ -365,5 +391,17 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         LeaderboardList
         .SingleOrDefault(x => x.PlayerID == playerID)
         .UpdateStats(health, exp);
+    }
+
+    private void OnUpdateNewPlayerViewId(object[] data)
+    {
+        if(!_initializedByMasterClient) return;
+        
+        int playerID = (int)data[0];
+        int viewID = (int)data[1];
+
+        Player newPlayer = newPlayers.SingleOrDefault(x => x.ActorNumber == playerID);
+        PlayersList.Add(viewID, newPlayer);
+        newPlayers.Remove(newPlayer);
     }
 }
