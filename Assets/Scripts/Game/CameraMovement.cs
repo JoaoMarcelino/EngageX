@@ -15,6 +15,6 @@ public class CameraMovement : MonoBehaviour
 
   void LateUpdate () 
   {
-      transform.position = new Vector3 (_target.position.x - _offset.x, _target.position.y - _offset.y, -10.0f); // Camera follows the player with specified offset position
+      transform.position = new Vector3 (_target.position.x - _offset.x, _target.position.y - _offset.y, -7.0f); // Camera follows the player with specified offset position
   }
 }

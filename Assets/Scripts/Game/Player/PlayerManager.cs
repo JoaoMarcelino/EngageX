@@ -35,7 +35,7 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
     
     public int Health {get; private set;}
     public int Exp {get; private set;}
-    public bool IsFirst {get; private set;}
+    public bool IsFirst {get; set;}
     public bool InEncounter{get; set;}
 
     private void Start()

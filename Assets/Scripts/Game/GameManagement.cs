@@ -292,7 +292,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
             Receivers = ReceiverGroup.Others
         };
 
-        PhotonNetwork.RaiseEvent(UpdatePlayerInfoOnMasterClientEvent, content, raiseEventOptions, SendOptions.SendReliable);
+        PhotonNetwork.RaiseEvent(UpdateNewPlayerViewIdEvent, content, raiseEventOptions, SendOptions.SendReliable);
     }
 
     public void OnEvent(EventData photonEvent)
