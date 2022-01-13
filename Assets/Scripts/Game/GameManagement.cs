@@ -142,6 +142,13 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         newPlayers.Add(newPlayer);
     }
 
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        var pair = PlayersList.FirstOrDefault(kvp => kvp.Value == otherPlayer);
+        LeaderboardList.Remove(LeaderboardList.FirstOrDefault(item => item.PlayerID == pair.Key));
+        PlayersList.Remove(pair.Key);
+    }
+
     private int ToModuledTick(int tick)
     {
         return tick%MasterManager.GameSettings.TickCountReset+1;
@@ -154,7 +161,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
             moduledTick = ToModuledTick(moduledTick);
         }
 
-        return moduledTick-MasterManager.GameSettings.TickCountReset;
+        return MasterManager.GameSettings.TickCountReset-moduledTick;
     }
 
     private void UpdateCurrentPlayerStats()
@@ -175,11 +182,11 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
 
     private void UpdateLeaderboardValues()
     {
-        if(!PhotonNetwork.IsMasterClient) return;
-
         byte[] byteArrayPlayerInfoList = MasterManager.ToByteArray<List<PlayerStatusInfo>>(LeaderboardList);
         RenderLeaderboard(byteArrayPlayerInfoList);
-        GameCanvas.LeaderboardPanel.RenderLeaderboard(LeaderboardList);
+        
+        if(PhotonNetwork.IsMasterClient)
+            GameCanvas.LeaderboardPanel.RenderLeaderboard(LeaderboardList);
     }
 
     void Update()
@@ -190,7 +197,8 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
 
         //Verify if another tick has passed
         if(currentTicks > _ticks)
-        { 
+        {
+            _ticks = currentTicks;
             //Calculate moduled tick
             int moduledTicks = ToModuledTick(currentTicks);
             GameCanvas.SetTicksText(moduledTicks.ToString());
@@ -348,6 +356,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         byte[] byteArrayPlayerList = MasterManager.ToByteArray<Dictionary<int, int>>(playersList);
 
         Initialize(playerID, _roomCreationTime, byteArrayLeaderboardList, byteArrayPlayerList);
+        UpdateNewPlayerViewId(playerID, viewID);
     }
 
     private void OnInitialize(object[] data)
@@ -381,8 +390,8 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
     private void OnRenderLeaderboard(object[] data)
     {
         byte[] byteArrayPlayerInfo = (byte[]) data[0];
-        List<PlayerStatusInfo> playerInfoList = MasterManager.FromByteArray<List<PlayerStatusInfo>>(byteArrayPlayerInfo);
-        GameCanvas.LeaderboardPanel.RenderLeaderboard(playerInfoList);
+        _leaderboardList = MasterManager.FromByteArray<List<PlayerStatusInfo>>(byteArrayPlayerInfo);
+        GameCanvas.LeaderboardPanel.RenderLeaderboard(LeaderboardList);
     }
     
     private void OnUpdatePlayerInfoOnMasterClient(object[] data)

@@ -96,6 +96,20 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
         }
     }
 
+    private List<HeartInfo> GetNeighbourCoordinates(float x, float y)
+    {
+        List<HeartInfo> heartInfoList = new List<HeartInfo>();
+        
+        heartInfoList.Add(new HeartInfo(x + fullMovement, y));
+        heartInfoList.Add(new HeartInfo(x - fullMovement, y));
+        heartInfoList.Add(new HeartInfo(x + halfMovement, y + halfMovement));
+        heartInfoList.Add(new HeartInfo(x + halfMovement, y - halfMovement));
+        heartInfoList.Add(new HeartInfo(x - halfMovement, y + halfMovement));
+        heartInfoList.Add(new HeartInfo(x - halfMovement, y - halfMovement));
+
+        return heartInfoList;
+    }
+
     public void OnClickSow()
     {
         if(!this.photonView.IsMine) return;
@@ -109,15 +123,7 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
 
         if(healthGiven == 0) return;
 
-        List<HeartInfo> heartInfoList = new List<HeartInfo>();
-        
-        heartInfoList.Add(new HeartInfo(posX + fullMovement, posY));
-        heartInfoList.Add(new HeartInfo(posX - fullMovement, posY));
-        heartInfoList.Add(new HeartInfo(posX + halfMovement, posY + halfMovement));
-        heartInfoList.Add(new HeartInfo(posX + halfMovement, posY - halfMovement));
-        heartInfoList.Add(new HeartInfo(posX - halfMovement, posY + halfMovement));
-        heartInfoList.Add(new HeartInfo(posX - halfMovement, posY - halfMovement));
-
+        List<HeartInfo> heartInfoList = GetNeighbourCoordinates(posX, posY);
         GameObject currentHeart = null;
         
         foreach(HeartInfo heart in heartInfoList)
@@ -129,17 +135,13 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
         if(currentHeart == null)
         {
             AddHealth(-healthGiven);
-            byte[] byteArrayHeartList = MasterManager.ToByteArray<List<HeartInfo>>(heartInfoList);
-            this.photonView.RPC("RpcHeartInstantiate", RpcTarget.MasterClient, byteArrayHeartList, healthGiven);
+            this.photonView.RPC("RpcHeartInstantiate", RpcTarget.MasterClient, posX, posY, healthGiven);
         }
     }
 
     public void OnClickHarvest()
     {
         if(!this.photonView.IsMine) return;
-
-        float posX = GetPlayerPositionX();
-        float posY = GetPlayerPositionY();
 
         GameObject heart = _currentCollisions.SingleOrDefault(x => x.gameObject.tag == "HealthItem");
 
@@ -156,15 +158,17 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
 
         int healthToLevel = (int) Math.Ceiling(Health * percentageUp);
 
+        if(healthToLevel == 0) return;
+
         AddHealth(-healthToLevel);
         AddExp(healthToLevel);
-
-        healthUpdated = expUpdated = true;
     }
 
     private void CreateHeart(float posX, float posY, int health)
     {  
         String name =  "Heart_" + posX  + "_" + posY;
+
+        if(GameObject.Find(name) != null) return;
 
         Vector2 position = new Vector2(posX, posY);
 
@@ -187,9 +191,9 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
     }
 
     [PunRPC]
-    private void RpcHeartInstantiate(byte[] byteArrayHeartList, int health)
+    private void RpcHeartInstantiate(float x, float y, int health)
     {
-        List<HeartInfo> heartInfoList = MasterManager.FromByteArray<List<HeartInfo>>(byteArrayHeartList);
+        List<HeartInfo> heartInfoList = GetNeighbourCoordinates(x, y);
 
         heartInfoList.ForEach(delegate(HeartInfo heartInfo){
             CreateHeart(heartInfo.X, heartInfo.Y, health);

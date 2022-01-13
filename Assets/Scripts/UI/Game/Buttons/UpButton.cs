@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class UpButton : MonoBehaviour
+public class UpButton : MonoBehaviour, IPointerClickHandler
 {
     private GameCanvas _gameCanvas;
 
