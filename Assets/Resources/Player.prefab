@@ -759,7 +759,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _healthPrefab: {fileID: 4029895951494557487, guid: 9cb50625d2824ae4bb392322a0837607,
     type: 3}
-  _heartList: []
   _currentCollisions: []
 --- !u!114 &4472207445375798685
 MonoBehaviour:

@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
 
-public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable
+public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable, IPunInstantiateMagicCallback
 {
     [SerializeField] private int _health;
     private bool _initialized = false;
@@ -28,6 +28,15 @@ public class HeartManager : MonoBehaviourPunCallbacks, IPunObservable
         else
         {
             Health = (int)stream.ReceiveNext();
+        }
+    }
+
+    public void OnPhotonInstantiate(PhotonMessageInfo info)
+    {
+        if(info.photonView.ViewID == base.photonView.ViewID)
+        {
+            gameObject.name = (string) info.photonView.InstantiationData[0];
+            FirstInitialize((int) info.photonView.InstantiationData[1]);
         }
     }
 

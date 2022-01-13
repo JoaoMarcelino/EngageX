@@ -73,6 +73,7 @@ public class PlayerMovement : MonoBehaviourPun
     public void GetMovementDirection(float moveX, float moveY)
     {
         float minVal = 0.4f;
+
         if (moveX < -minVal)
         {
             if (moveY > minVal)
@@ -87,7 +88,6 @@ public class PlayerMovement : MonoBehaviourPun
             {
                 direction = new Vector3(-fullMovement, 0);
             }
-            transform.position += direction;
         }
         else if (moveX> minVal)
         {
@@ -103,11 +103,12 @@ public class PlayerMovement : MonoBehaviourPun
             {
                 direction = new Vector3(fullMovement, 0);
             }
-
-            transform.position += direction;
         }
         
+        
+        transform.position += direction;
         CheckBorders(direction);
+        GameManagement.PlayerManager.AddHealth(-1);
     }
 
     private void CheckBorders(Vector3 direction)

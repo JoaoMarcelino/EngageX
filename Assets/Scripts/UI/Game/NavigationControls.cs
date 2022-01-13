@@ -28,6 +28,7 @@ public class NavigationControls : MonoBehaviour
 
     public void Hide()
     {
+        FixedJoystick.ReleaseJoystick();
         gameObject.SetActive(false);
     }
 }

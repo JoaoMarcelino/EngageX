@@ -17,6 +17,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
 {
     [SerializeField] private GameCanvas _gameCanvas;
     [SerializeField] private GameObject _playerPrefab;
+    [SerializeField] private Sprite _fogSprite;
     [SerializeField] private int _ticks = 0;
     [SerializeField] private List<PlayerStatusInfo> _leaderboardList = new List<PlayerStatusInfo>();
     [SerializeField] private Dictionary<int, Player> _playersList = new Dictionary<int, Player>();
@@ -41,7 +42,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
     private GameObject SpawnPlayer()
     {
         Vector3 origin = new Vector3(0, 0, 0);
-        GameObject player =  MasterManager.NetworkInstantiate(_playerPrefab, origin, Quaternion.identity, false);
+        GameObject player =  MasterManager.NetworkInstantiate(_playerPrefab, origin, Quaternion.identity);
 
         System.Random randomGenerator = new System.Random();
         
@@ -85,6 +86,13 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         GameObject player = SpawnPlayer();
 
         if(!player.GetPhotonView().IsMine) return;
+
+        // SpriteRenderer renderer = player.AddComponent<SpriteRenderer>();
+        // renderer.sprite = _fogSprite;
+        // renderer.color = Color.black;
+        // renderer.sortingOrder = 3;
+        // renderer.drawMode = SpriteDrawMode.Sliced;
+        // renderer.size += new Vector2(10.0f, 10.0f);
 
         GameCanvas.FirstInitialize(this);
 
@@ -195,6 +203,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
                 //Ticks were reset: Update leaderboard
                 case 0:
                     UpdateLeaderboardValues();
+                    PlayerManager.AddHealth(-1);
                     break;
                 //Only one tick left to reset: Update Current Player Stats   
                 case 1:
@@ -220,12 +229,11 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         PhotonNetwork.RaiseEvent(RequestInitializationEvent, content, raiseEventOptions, SendOptions.SendReliable);
     }
 
-    private void Initialize(int playerID, long roomCreationTime, byte[] byteArrayHeartList, byte[] byteArrayLeaderboardList, byte[] byteArrayPlayerList)
+    private void Initialize(int playerID, long roomCreationTime, byte[] byteArrayLeaderboardList, byte[] byteArrayPlayerList)
     {
         object[] content = new object[]{
             playerID,
             roomCreationTime,
-            byteArrayHeartList,
             byteArrayLeaderboardList,
             byteArrayPlayerList
         };
@@ -328,7 +336,6 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         LeaderboardList.Add(playerStatusInfo);
         PlayersList.Add(viewID, player);
 
-        byte[] byteArrayHeartList = MasterManager.ToByteArray<List<HeartInfo>>(PlayerManager.HeartList);
         byte[] byteArrayLeaderboardList = MasterManager.ToByteArray<List<PlayerStatusInfo>>(LeaderboardList);
 
         Dictionary<int, int> playersList = new Dictionary<int, int>();
@@ -340,7 +347,7 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
 
         byte[] byteArrayPlayerList = MasterManager.ToByteArray<Dictionary<int, int>>(playersList);
 
-        Initialize(playerID, _roomCreationTime, byteArrayHeartList, byteArrayLeaderboardList, byteArrayPlayerList);
+        Initialize(playerID, _roomCreationTime, byteArrayLeaderboardList, byteArrayPlayerList);
     }
 
     private void OnInitialize(object[] data)
@@ -349,16 +356,12 @@ public class GameManagement : MonoBehaviourPunCallbacks, IOnEventCallback
         if(playerID != PhotonNetwork.LocalPlayer.ActorNumber) return;
         
         _roomCreationTime = (long) data[1];
-        byte[] byteArrayHeartList = (byte[]) data[2];
 
-        List<HeartInfo> heartInfoList = MasterManager.FromByteArray<List<HeartInfo>>(byteArrayHeartList);
-        PlayerManager.HeartList = heartInfoList;
-
-        byte[] byteArrayLeaderboardList = (byte[]) data[3];
+        byte[] byteArrayLeaderboardList = (byte[]) data[2];
         List<PlayerStatusInfo> leaderboardList = MasterManager.FromByteArray<List<PlayerStatusInfo>>(byteArrayLeaderboardList);
         GameCanvas.LeaderboardPanel.RenderLeaderboard(leaderboardList);
 
-        byte[] byteArrayPlayerList = (byte[]) data[4];
+        byte[] byteArrayPlayerList = (byte[]) data[3];
         Dictionary<int, int> playerList = MasterManager.FromByteArray<Dictionary<int, int>>(byteArrayPlayerList);
 
         foreach(KeyValuePair<int, Player> playerInfo in PhotonNetwork.CurrentRoom.Players)

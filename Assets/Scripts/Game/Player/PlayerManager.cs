@@ -11,11 +11,11 @@ using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 using Photon.Pun;
+using Photon.Realtime;
 
 public class PlayerManager : MonoBehaviourPun, IPunObservable
 {
     [SerializeField] private GameObject _healthPrefab;
-    [SerializeField] private List<HeartInfo> _heartList = new List<HeartInfo>();
     [SerializeField] private List<GameObject> _currentCollisions = new List<GameObject>();
     
     private bool healthUpdated;
@@ -32,13 +32,11 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
     private float tilemapOffsetY = 2.75f;
 
     public GameManagement GameManagement {get; private set;}
-    public List<HeartInfo> HeartList {get{ return _heartList;} set{_heartList = value;}}
     
     public int Health {get; private set;}
     public int Exp {get; private set;}
     public bool IsFirst {get; private set;}
     public bool InEncounter{get; set;}
-    public int PlayerID{get;set;}
 
     private void Start()
     {
@@ -48,7 +46,6 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
         fullMovement = 1f * scaleMap;
         IsFirst = false;
         InEncounter = false;
-        PlayerID = this.photonView.ViewID;
 
         AddHealth(MasterManager.GameSettings.InitialHealth);
         AddExp(MasterManager.GameSettings.InitialExp);
@@ -62,7 +59,6 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
             stream.SendNext(Exp);
             stream.SendNext(IsFirst);
             stream.SendNext(InEncounter);
-            stream.SendNext(PlayerID);
         }
         else
         {
@@ -70,7 +66,6 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
             Exp = (int)stream.ReceiveNext();
             IsFirst = (bool)stream.ReceiveNext();
             InEncounter = (bool)stream.ReceiveNext();
-            PlayerID = (int)stream.ReceiveNext();
         }
     }
 
@@ -109,18 +104,10 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
         float posY = GetPlayerPositionY();
 
         int healthGiven;
-        int aux = 10; 
+        
+        healthGiven = (int) Math.Ceiling(Health * percentageSow);
 
-        //TODO LOSE HEALTH, CHOOSE PERCENTAGE OF HEALTH GIVEN
-        if (Health <= aux)
-        {
-            healthGiven = (int) Math.Ceiling(aux * percentageSow);
-        }
-        else
-        {
-            healthGiven = (int) Math.Ceiling(Health * percentageSow);
-            AddHealth(-healthGiven);
-        }
+        if(healthGiven == 0) return;
 
         List<HeartInfo> heartInfoList = new List<HeartInfo>();
         
@@ -131,12 +118,19 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
         heartInfoList.Add(new HeartInfo(posX - halfMovement, posY + halfMovement));
         heartInfoList.Add(new HeartInfo(posX - halfMovement, posY - halfMovement));
 
-        heartInfoList = FilterDuplicateHearts(heartInfoList);
-
-        if(heartInfoList.Count != 0)
+        GameObject currentHeart = null;
+        
+        foreach(HeartInfo heart in heartInfoList)
         {
+            currentHeart = GameObject.Find("Heart_" + heart.X + "_" + heart.Y);
+            if(currentHeart == null) break;
+        }
+
+        if(currentHeart == null)
+        {
+            AddHealth(-healthGiven);
             byte[] byteArrayHeartList = MasterManager.ToByteArray<List<HeartInfo>>(heartInfoList);
-            this.photonView.RPC("RpcHeartInstantiate", RpcTarget.All, byteArrayHeartList, healthGiven);
+            this.photonView.RPC("RpcHeartInstantiate", RpcTarget.MasterClient, byteArrayHeartList, healthGiven);
         }
     }
 
@@ -151,12 +145,8 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
 
         if(heart != null)
         {
-            int playerId = this.photonView.ViewID;
-            
-            if(PhotonNetwork.IsMasterClient) 
-                HeartDestroy(posX, posY, playerId, false);
-            else
-                this.photonView.RPC("RpcHeartDestroy", RpcTarget.MasterClient, posX, posY, playerId);
+            AddHealth(heart.GetComponent<HeartManager>().Health);
+            this.photonView.RPC("RpcHeartDestroy", RpcTarget.MasterClient, heart.name);
         }
     }
 
@@ -178,9 +168,12 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
 
         Vector2 position = new Vector2(posX, posY);
 
-        GameObject heart = MasterManager.NetworkInstantiate(_healthPrefab, position, Quaternion.identity, true);
-        heart.name = name;
-        heart.GetComponent<HeartManager>().FirstInitialize(health);
+        object[] content = {
+            name,
+            health
+        };
+
+        GameObject heart = MasterManager.NetworkInstantiate(_healthPrefab, position, Quaternion.identity, true, content);
     }
 
     private float GetPlayerPositionX()
@@ -198,56 +191,16 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
     {
         List<HeartInfo> heartInfoList = MasterManager.FromByteArray<List<HeartInfo>>(byteArrayHeartList);
 
-        heartInfoList = FilterDuplicateHearts(heartInfoList);
-
-        if(PhotonNetwork.IsMasterClient)
-        {
-            heartInfoList.ForEach(delegate(HeartInfo heartInfo){
-                CreateHeart(heartInfo.X, heartInfo.Y, health);
-            });
-        }
-
-        HeartList.AddRange(heartInfoList);
+        heartInfoList.ForEach(delegate(HeartInfo heartInfo){
+            CreateHeart(heartInfo.X, heartInfo.Y, health);
+        });
     }
 
-    private void HeartDestroy(float x, float y, int playerId, bool remote)
+    [PunRPC]
+    private void RpcHeartDestroy(string name)
     {
-        String name =  "Heart_" + x  + "_" + y;
         GameObject heart = GameObject.Find(name);
-
-        if(!remote)AddHealth(heart.GetComponent<HeartManager>().Health);
-        
         PhotonNetwork.Destroy(heart);
-        HeartList.Remove(HeartList.SingleOrDefault(r => r.X == x && r.Y == y));
-        
-        this.photonView.RPC("RpcUpdatePlayers", RpcTarget.Others, x, y, playerId, heart.GetComponent<HeartManager>().Health);
-    }
-
-    [PunRPC]
-    private void RpcHeartDestroy(float x, float y, int playerId)
-    {
-        HeartDestroy(x, y, playerId, true);
-    }
-
-    [PunRPC]
-    private void RpcUpdatePlayers(float x, float y, int playerID, int health)
-    {
-        if(this.photonView.ViewID == playerID)
-        {
-            AddHealth(health);
-        }
-
-        HeartList.Remove(HeartList.SingleOrDefault(r => r.X == x && r.Y == y));
-    }
-
-    private List<HeartInfo> FilterDuplicateHearts(List<HeartInfo> heartInfoList)
-    {
-        return heartInfoList.Where(
-            localHeartInfo => HeartList.All(
-                globalHeartInfo =>
-                    localHeartInfo.X != globalHeartInfo.X || 
-                    localHeartInfo.Y != globalHeartInfo.Y)
-        ).ToList();
     }
 
     void OnTriggerEnter2D(Collider2D col)
@@ -305,19 +258,19 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
         expUpdated = false;
     }
 
-    private void OnWonFight(int health)
+    private void OnWonFight(PlayerManager currentPlayer, int health)
     {
-        AddHealth(health - Health/2);
-        InEncounter = false;
-        IsFirst = false;
+        currentPlayer.AddHealth(health - Health/2);
+        currentPlayer.InEncounter = false;
+        currentPlayer.IsFirst = false;
     }
 
-    private void OnLostFight()
+    private void OnLostFight(PlayerManager currentPlayer, PlayerMovement movement)
     {
-        AddHealth(-Health/2);
-        GetComponent<PlayerMovement>().GoToRandomPosition();
-        InEncounter = false;
-        IsFirst = false;
+        currentPlayer.AddHealth(-Health/2);
+        movement.GoToRandomPosition();
+        currentPlayer.InEncounter = false;
+        currentPlayer.IsFirst = false;
     }
 
     public void OnClickFight()
@@ -334,14 +287,14 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
             //Loses fight
             if(rand.Next(0, 2) == 0)
             {
-                this.photonView.RPC("RpcFightPlayer", GameManagement.PlayersList[opponentID], true, totalHealth);
-                OnLostFight();
+                this.photonView.RPC("RpcFightPlayer", GameManagement.PlayersList[opponentID], opponentID, true, totalHealth);
+                OnLostFight(GameManagement.PlayerManager, GameManagement.PlayerMovement);
             }
             //Wins fight
             else
             {
-                this.photonView.RPC("RpcFightPlayer", GameManagement.PlayersList[opponentID], false, totalHealth);
-                OnWonFight(totalHealth);
+                this.photonView.RPC("RpcFightPlayer", GameManagement.PlayersList[opponentID], opponentID, false, totalHealth);
+                OnWonFight(GameManagement.PlayerManager, totalHealth);
             }
         }
     }
@@ -354,7 +307,7 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
 
         if(IsFirst)
         {
-            this.photonView.RPC("RpcShareLife", GameManagement.PlayersList[opponentID], Health/2);
+            this.photonView.RPC("RpcShareLife", GameManagement.PlayersList[opponentID], opponentID, Health/2);
             AddHealth(opponentHealth/2);
             GameManagement.PlayerMovement.GoToRandomPosition();
             InEncounter = false;
@@ -374,7 +327,7 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
             
             if(rand.Next(0, 4) == 0)
             {
-                this.photonView.RPC("RpcStealLife", GameManagement.PlayersList[opponentID], Health/4);
+                this.photonView.RPC("RpcStealLife", GameManagement.PlayersList[opponentID], opponentID, Health/4);
             }
             else
             {
@@ -393,7 +346,7 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
 
         if(IsFirst)
         {
-            AddHealth(Health/4);
+            AddHealth(-Health/4);
 
             System.Random rand = new System.Random();
 
@@ -411,31 +364,37 @@ public class PlayerManager : MonoBehaviourPun, IPunObservable
     }
 
     [PunRPC]
-    private void RpcStealLife(int health)
+    private void RpcStealLife(int viewID, int health)
     {
-        AddHealth(-health);
-        InEncounter = false;
-        IsFirst = false;
+        PlayerManager currentPlayer = PhotonView.Find(viewID).gameObject.GetComponent<PlayerManager>();
+        currentPlayer.AddHealth(-health);
+        currentPlayer.InEncounter = false;
+        currentPlayer.IsFirst = false;
     }
 
     [PunRPC]
-    private void RpcShareLife(int health)
+    private void RpcShareLife(int viewID, int health)
     {
-        AddHealth(health);
-        InEncounter = false;
-        IsFirst = false;
+        PlayerManager currentPlayer = PhotonView.Find(viewID).gameObject.GetComponent<PlayerManager>();
+        currentPlayer.AddHealth(health - currentPlayer.Health/2);
+        currentPlayer.InEncounter = false;
+        currentPlayer.IsFirst = false;
     }
 
     [PunRPC]
-    private void RpcFightPlayer(bool win, int health)
+    private void RpcFightPlayer(int viewID, bool win, int health)
     {
+        GameObject currentPlayerObject = PhotonView.Find(viewID).gameObject; 
+        PlayerManager currentPlayer = currentPlayerObject.GetComponent<PlayerManager>();
+        
         if(win)
         {
-            OnWonFight(health);
+            OnWonFight(currentPlayer, health);
         }        
         else
         {
-            OnLostFight();
+            PlayerMovement playerMovement = currentPlayerObject.GetComponent<PlayerMovement>();
+            OnLostFight(currentPlayer, playerMovement);
         }
     }
 }

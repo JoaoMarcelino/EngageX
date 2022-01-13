@@ -19,7 +19,7 @@ public class MasterManager: SingletonScriptableObject<MasterManager>
     public static GameSettings GameSettings { get { return Instance._gameSettings; } }
     [SerializeField] private List<NetworkedPrefab> _networkedPrefabs = new List<NetworkedPrefab>();
 
-    public static GameObject NetworkInstantiate(GameObject obj, Vector3 position, Quaternion rotation, bool roomObject)
+    public static GameObject NetworkInstantiate(GameObject obj, Vector3 position, Quaternion rotation, bool roomObject = false, object[] data = null)
     {
         foreach (NetworkedPrefab networkedPrefab in Instance._networkedPrefabs)
         {
@@ -28,8 +28,13 @@ public class MasterManager: SingletonScriptableObject<MasterManager>
                 if(networkedPrefab.Path != string.Empty)
                 {   
                     GameObject result;
-                    if(roomObject)
+
+                    if(roomObject && data != null)
+                        result = PhotonNetwork.InstantiateRoomObject(networkedPrefab.Path, position, rotation, 0, data);
+                    else if(roomObject)
                         result = PhotonNetwork.InstantiateRoomObject(networkedPrefab.Path, position, rotation);
+                    else if(data != null)
+                        result = PhotonNetwork.Instantiate(networkedPrefab.Path, position, rotation, 0, data);
                     else
                         result = PhotonNetwork.Instantiate(networkedPrefab.Path, position, rotation);
 

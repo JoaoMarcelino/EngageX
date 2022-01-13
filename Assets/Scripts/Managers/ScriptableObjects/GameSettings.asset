@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _gameVersion: 0.0.4
   _nickName: Guest
-  _eachTickTime: 1
+  _eachTickTime: 5
   _tickCountReset: 5
-  _initialHealth: 10
+  _initialHealth: 100
   _initialExp: 0
   _leaderboardSize: 5
+  _heartUpgradeTicks: 10

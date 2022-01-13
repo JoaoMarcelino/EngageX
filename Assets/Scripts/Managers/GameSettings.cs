@@ -17,13 +17,13 @@ public class GameSettings: SingletonScriptableObject<MasterManager>
         }
     }
     
-    [SerializeField] private int _eachTickTime = 1;
+    [SerializeField] private int _eachTickTime = 5;
     public int EachTickTime{ get{ return 10000*_eachTickTime;}}
 
     [SerializeField] private int _tickCountReset = 5;
     public int TickCountReset{ get{ return _tickCountReset;}}
 
-    [SerializeField] private int _initialHealth = 10;
+    [SerializeField] private int _initialHealth = 100;
     public int InitialHealth{ get{ return _initialHealth;}}
 
     [SerializeField] private int _initialExp = 0;
